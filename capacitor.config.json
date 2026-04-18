@@ -3,6 +3,8 @@
   "appName": "WorkTime",
   "webDir": "www",
   "server": {
-    "androidScheme": "file"
+    "androidScheme": "http",
+    "hostname": "localhost",
+    "cleartext": true
   }
 }
