@@ -2,8 +2,7 @@
   "appId": "com.worktime.app",
   "appName": "WorkTime",
   "webDir": "www",
-  "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "file"
   }
 }
