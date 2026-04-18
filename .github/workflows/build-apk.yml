@@ -14,8 +14,10 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: "22"
-    - name: Install
-      run: npm install
+    - name: Install and sync
+      run: npm install && npx cap sync android
+    - name: Restore icons from git
+      run: git checkout -- android/app/src/main/res/
     - uses: android-actions/setup-android@v3
     - name: Build APK
       run: |
