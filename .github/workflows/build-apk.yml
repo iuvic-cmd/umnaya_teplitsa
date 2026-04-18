@@ -16,7 +16,7 @@ jobs:
         node-version: "22"
     - name: Install and sync
       run: npm install && npx cap sync android
-      - name: Restore custom icons
+    - name: Restore custom icons
       run: |
         git checkout HEAD -- android/app/src/main/res/mipmap-mdpi/
         git checkout HEAD -- android/app/src/main/res/mipmap-hdpi/
