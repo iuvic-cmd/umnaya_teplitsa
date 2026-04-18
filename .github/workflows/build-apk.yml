@@ -13,7 +13,7 @@ jobs:
         java-version: "21"
     - uses: actions/setup-node@v4
       with:
-        node-version: "20"
+        node-version: "22"
     - name: Install and sync
       run: npm install && npx cap sync android
     - uses: android-actions/setup-android@v3
