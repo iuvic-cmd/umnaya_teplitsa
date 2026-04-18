@@ -1,10 +1,5 @@
 {
   "appId": "com.worktime.app",
   "appName": "WorkTime",
-  "webDir": "www",
-  "server": {
-    "androidScheme": "http",
-    "hostname": "localhost",
-    "cleartext": true
-  }
+  "webDir": "www"
 }
