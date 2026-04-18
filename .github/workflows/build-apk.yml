@@ -1,43 +1,29 @@
 name: Build Android APK
-
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
       with:
-        distribution: 'temurin'
-        java-version: '21'
-        
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-      
-    - name: Grant execute permission for gradlew
-      run: chmod +x android/gradlew
-      
-    - name: Clean and rebuild
+        distribution: temurin
+        java-version: "21"
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+    - name: Install and sync
+      run: npm install && npx cap sync android
+    - uses: android-actions/setup-android@v3
+    - name: Build APK
       run: |
+        chmod +x android/gradlew
         cd android
-        # Явно задаём JAVA_HOME
         export JAVA_HOME=$JAVA_HOME_21_X64
-        # Очищаем кэш
-        ./gradlew clean --no-daemon
-        # Собираем с принудительной Java 17
-        ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs=-Xmx2048m -Dorg.gradle.java.home=$JAVA_HOME_21_X64 --stacktrace
-        
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
+        ./gradlew assembleDebug --no-daemon
+    - uses: actions/upload-artifact@v4
       with:
         name: app-debug
         path: android/app/build/outputs/apk/debug/app-debug.apk
