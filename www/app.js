@@ -1,8 +1,25 @@
 // ============================================
 // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 // ============================================
-const NIGHT_PRICE = 65;
-const AP_PRICE = 50;
+// ============================================
+// ТАРИФЫ: до 05.05.2026 — старые, с 05.05.2026 — новые
+// ============================================
+const PRICE_CUTOFF = "2026-05-05"; // дата смены тарифа
+const OLD_NIGHT_PRICE = 65;        // бывший тариф «Ночные»
+const OLD_AP_PRICE = 50;           // бывший тариф «АП-34»
+const NEW_NIGHT_PRICE = 73;        // «Ночной тариф»
+const NEW_AP_PRICE = 54;           // «Единый тариф Кишинев»
+
+function getPrices(dateStr) {
+  if (dateStr && dateStr >= PRICE_CUTOFF) {
+    return { night: NEW_NIGHT_PRICE, ap: NEW_AP_PRICE };
+  }
+  return { night: OLD_NIGHT_PRICE, ap: OLD_AP_PRICE };
+}
+
+// Для обратной совместимости (используется в редких местах без даты)
+const NIGHT_PRICE = NEW_NIGHT_PRICE;
+const AP_PRICE = NEW_AP_PRICE;
 let currentDate = new Date();
 let massEditDate = new Date();
 let selectedDays = new Set();
@@ -83,17 +100,18 @@ function addOrders() {
 
   let history = JSON.parse(localStorage.getItem("courierData")) || [];
   const dayIndex = history.findIndex((d) => d.date === date);
+  const p = getPrices(date);
   if (dayIndex >= 0) {
     history[dayIndex].nightOrders += addNight;
     history[dayIndex].apOrders += addAp;
-    history[dayIndex].total = history[dayIndex].nightOrders * NIGHT_PRICE + history[dayIndex].apOrders * AP_PRICE;
+    history[dayIndex].total = history[dayIndex].nightOrders * p.night + history[dayIndex].apOrders * p.ap;
   } else {
     history.push({
       date: date,
       dayType: "work",
       nightOrders: addNight,
       apOrders: addAp,
-      total: addNight * NIGHT_PRICE + addAp * AP_PRICE,
+      total: addNight * p.night + addAp * p.ap,
       generated: false,
     });
   }
@@ -280,7 +298,7 @@ const translations = {
     appTitle: "📦 Учёт рабочего дня курьера",
     today: "Сегодня",
     allTotal: "Общий доход",
-    allAp: "Всего АП-34",
+    allAp: "Всего Единый тариф",
     allNight: "Всего ночных",
     monthlyIncome: "Доход за этот месяц",
     todayTrips: "Ходок сегодня",
@@ -327,18 +345,18 @@ const translations = {
     ordersLog: "Лог заказов",
     // Статистика — сегодня
     todayIncome: "Доход",
-    todayNightLabel: "Ночные",
-    todayApLabel: "📦 АП-34",
+    todayNightLabel: "Ночной тариф",
+    todayApLabel: "📦 Единый Кишинев",
     todayTripsLabel: "Всего ходок",
     // Статистика — месяц
     monthIncomeLabel: "Всего доход",
-    monthNightLabel: "🌙 Ночные",
-    monthApLabel: "📦 АП-34",
+    monthNightLabel: "🌙 Ночной тариф",
+    monthApLabel: "📦 Единый Кишинев",
     monthTripsLabel: "Всего ходок",
     monthAvgLabel: "Ср. выручка в день",
     // Статистика — всё время
     allIncomeLabel: "Выручка",
-    allApLabel: "📦 АП-34",
+    allApLabel: "📦 Единый Кишинев",
     allNightLabel: "🌙 Ночных",
     // Заголовки блоков
     statsTodayHeader: "📅 СЕГОДНЯ",
@@ -350,14 +368,14 @@ const translations = {
     // Редактировать день
     dateLabel: "📅 Дата:",
     dayTypeLabel: "📋 Тип дня:",
-    nightOrdersLabel: "🌙 Ночные (65 лей):",
-    apOrdersLabel: "📦 АП-34 (50 лей):",
+    nightOrdersLabel: "🌙 Ночной тариф (73 лей):",
+    apOrdersLabel: "📦 Единый тариф Кишинев (54 лей):",
     addOrdersBtn: "➕ Добавить заказы",
     clearDayBtn: "🗑️ Очистить",
     // Модалка
     addOrdersTitle: "➕ Добавить заказы к существующим",
     addNightLabel: "➕ Ночные:",
-    addApLabel: "➕ АП-34:",
+    addApLabel: "➕ Единый тариф:",
     addConfirmBtn: "✅ Добавить",
     cancelBtn: "❌ Отмена",
     // Планирование
@@ -396,7 +414,7 @@ const translations = {
     chartDailyTripsTitle: "📊 Ходки по дням (текущий месяц)",
     chartDayTypesTitle: "🥧 Распределение по типам дней",
     chartMonthlyTitle: "📈 Доход по месяцам",
-    chartNightVsApTitle: "🌙 Ночные vs 📦 АП-34 (месяц)",
+    chartNightVsApTitle: "🌙 Ночной тариф vs 📦 Единый Кишинев (месяц)",
     chartTop5Title: "🏆 Топ-5 лучших дней",
     // Прогноз
     forecastTitle: "🔮 Прогноз на",
@@ -452,7 +470,7 @@ const translations = {
     appTitle: "📦 Evidența zilei de lucru",
     today: "Astăzi",
     allTotal: "Venit total",
-    allAp: "Total AP-34",
+    allAp: "Total Tarif Unic",
     allNight: "Total noapte",
     monthlyIncome: "Venit lunar",
     todayTrips: "Curse azi",
@@ -498,17 +516,17 @@ const translations = {
     confirmReset: "⚠️ Sigur doriți să ștergeți toate datele?",
     ordersLog: "Jurnal comenzi",
     todayIncome: "Venit",
-    todayNightLabel: "Noapte",
-    todayApLabel: "📦 AP-34",
+    todayNightLabel: "Tarif Noapte",
+    todayApLabel: "📦 Tarif Unic Chișinău",
     todayTripsLabel: "Total curse",
     monthIncomeLabel: "Venit total",
-    monthNightLabel: "🌙 Noapte",
-    monthApLabel: "📦 AP-34",
+    monthNightLabel: "🌙 Tarif Noapte",
+    monthApLabel: "📦 Tarif Unic Chișinău",
     monthTripsLabel: "Total curse",
     monthAvgLabel: "Medie/zi",
     allIncomeLabel: "Venit",
-    allApLabel: "📦 AP-34",
-    allNightLabel: "🌙 Noapte",
+    allApLabel: "📦 Tarif Unic Chișinău",
+    allNightLabel: "🌙 Tarif Noapte",
     statsTodayHeader: "📅 AZI",
     statsAllHeader: "🌍 TOTAL",
     avgByTypeTitle: "📈 Medie curse pe tip de zi",
@@ -516,13 +534,13 @@ const translations = {
     avgNoData: "fără date",
     dateLabel: "📅 Dată:",
     dayTypeLabel: "📋 Tip zi:",
-    nightOrdersLabel: "🌙 Noapte (65 lei):",
-    apOrdersLabel: "📦 AP-34 (50 lei):",
+    nightOrdersLabel: "🌙 Tarif Noapte (73 lei):",
+    apOrdersLabel: "📦 Tarif Unic Chișinău (54 lei):",
     addOrdersBtn: "➕ Adaugă comenzi",
     clearDayBtn: "🗑️ Șterge",
     addOrdersTitle: "➕ Adaugă comenzi la existente",
-    addNightLabel: "➕ Noapte:",
-    addApLabel: "➕ AP-34:",
+    addNightLabel: "➕ Tarif Noapte:",
+    addApLabel: "➕ Tarif Unic:",
     addConfirmBtn: "✅ Adaugă",
     cancelBtn: "❌ Anulare",
     manualPlanTitle: "✏️ Planificare manuală",
@@ -556,7 +574,7 @@ const translations = {
     chartDailyTripsTitle: "📊 Curse pe zile (luna curentă)",
     chartDayTypesTitle: "🥧 Distribuție pe tipuri de zile",
     chartMonthlyTitle: "📈 Venit pe luni",
-    chartNightVsApTitle: "🌙 Noapte vs 📦 AP-34 (lună)",
+    chartNightVsApTitle: "🌙 Tarif Noapte vs 📦 Tarif Unic (lună)",
     chartTop5Title: "🏆 Top 5 cele mai bune zile",
     forecastTitle: "🔮 Prognoză pentru",
     forecastEarned: "💰 Câștigat până acum",
@@ -610,7 +628,7 @@ const translations = {
     appTitle: "📦 Courier Work Day Tracker",
     today: "Today",
     allTotal: "Total income",
-    allAp: "Total AP-34",
+    allAp: "Total Unified tariff",
     allNight: "Total night",
     monthlyIncome: "Monthly income",
     todayTrips: "Trips today",
@@ -656,17 +674,17 @@ const translations = {
     confirmReset: "⚠️ Are you sure you want to delete all data?",
     ordersLog: "Orders log",
     todayIncome: "Income",
-    todayNightLabel: "Night",
-    todayApLabel: "📦 AP-34",
+    todayNightLabel: "Night tariff",
+    todayApLabel: "📦 Unified Chișinău",
     todayTripsLabel: "Total trips",
     monthIncomeLabel: "Total income",
-    monthNightLabel: "🌙 Night",
-    monthApLabel: "📦 AP-34",
+    monthNightLabel: "🌙 Night tariff",
+    monthApLabel: "📦 Unified Chișinău",
     monthTripsLabel: "Total trips",
     monthAvgLabel: "Avg income/day",
     allIncomeLabel: "Revenue",
-    allApLabel: "📦 AP-34",
-    allNightLabel: "🌙 Night",
+    allApLabel: "📦 Unified Chișinău",
+    allNightLabel: "🌙 Night tariff",
     statsTodayHeader: "📅 TODAY",
     statsAllHeader: "🌍 ALL TIME",
     avgByTypeTitle: "📈 Avg trips by day type",
@@ -674,13 +692,13 @@ const translations = {
     avgNoData: "no data",
     dateLabel: "📅 Date:",
     dayTypeLabel: "📋 Day type:",
-    nightOrdersLabel: "🌙 Night (65 lei):",
-    apOrdersLabel: "📦 AP-34 (50 lei):",
+    nightOrdersLabel: "🌙 Night tariff (73 lei):",
+    apOrdersLabel: "📦 Unified Chișinău (54 lei):",
     addOrdersBtn: "➕ Add orders",
     clearDayBtn: "🗑️ Clear",
     addOrdersTitle: "➕ Add to existing orders",
-    addNightLabel: "➕ Night:",
-    addApLabel: "➕ AP-34:",
+    addNightLabel: "➕ Night tariff:",
+    addApLabel: "➕ Unified tariff:",
     addConfirmBtn: "✅ Add",
     cancelBtn: "❌ Cancel",
     manualPlanTitle: "✏️ Manual planning",
@@ -714,7 +732,7 @@ const translations = {
     chartDailyTripsTitle: "📊 Trips by day (current month)",
     chartDayTypesTitle: "🥧 Distribution by day type",
     chartMonthlyTitle: "📈 Income by month",
-    chartNightVsApTitle: "🌙 Night vs 📦 AP-34 (month)",
+    chartNightVsApTitle: "🌙 Night tariff vs 📦 Unified Chișinău (month)",
     chartTop5Title: "🏆 Top 5 best days",
     forecastTitle: "🔮 Forecast for",
     forecastEarned: "💰 Earned so far",
@@ -1127,7 +1145,8 @@ function saveDay() {
   const dayType = dayTypeSelect.value;
   const nightOrders = parseInt(nightOrdersInput.value) || 0;
   const apOrders = parseInt(apOrdersInput.value) || 0;
-  const total = nightOrders * NIGHT_PRICE + apOrders * AP_PRICE;
+  const p = getPrices(date);
+  const total = nightOrders * p.night + apOrders * p.ap;
   const note = (document.getElementById("dayNote") || {}).value || "";
   const singleOnly = !!(document.getElementById("singleDayOnly") && document.getElementById("singleDayOnly").checked);
 
@@ -1985,7 +2004,7 @@ function exportData(format) {
 
   } else if (format === "excel") {
     // Генерируем XLSX через HTML table → data URI
-    let table = "<table><tr><th>Дата</th><th>Тип</th><th>Ночные</th><th>АП-34</th><th>Сумма</th></tr>";
+    let table = "<table><tr><th>Дата</th><th>Тип</th><th>Ночной тариф</th><th>Единый тариф</th><th>Сумма</th></tr>";
     history.forEach(d => {
       table += `<tr><td>${d.date}</td><td>${d.dayType}</td><td>${d.nightOrders||0}</td><td>${d.apOrders||0}</td><td>${d.total||0}</td></tr>`;
     });
@@ -2101,7 +2120,7 @@ function importData(format) {
           dayType: typeIdx >= 0 ? cols[typeIdx].trim() : "work",
           nightOrders: night,
           apOrders: ap,
-          total: totalIdx >= 0 ? parseInt(cols[totalIdx]) || 0 : night * NIGHT_PRICE + ap * AP_PRICE,
+          total: totalIdx >= 0 ? parseInt(cols[totalIdx]) || 0 : night * getPrices(cols[dateIdx].trim()).night + ap * getPrices(cols[dateIdx].trim()).ap,
           generated: false
         });
       }
