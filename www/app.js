@@ -10,11 +10,60 @@ const OLD_AP_PRICE = 50;           // бывший тариф «АП-34»
 const NEW_NIGHT_PRICE = 73;        // «Ночной тариф»
 const NEW_AP_PRICE = 54;           // «Единый тариф Кишинев»
 
+function getCustomPrices() {
+  const saved = JSON.parse(localStorage.getItem("customTariff") || "null");
+  return saved;
+}
+
 function getPrices(dateStr) {
+  // Сначала проверяем пользовательские тарифы
+  const custom = getCustomPrices();
+  if (custom) {
+    if (dateStr && dateStr >= PRICE_CUTOFF) {
+      return { night: custom.night, ap: custom.ap };
+    }
+    return { night: OLD_NIGHT_PRICE, ap: OLD_AP_PRICE };
+  }
+  // Иначе — стандартная логика
   if (dateStr && dateStr >= PRICE_CUTOFF) {
     return { night: NEW_NIGHT_PRICE, ap: NEW_AP_PRICE };
   }
   return { night: OLD_NIGHT_PRICE, ap: OLD_AP_PRICE };
+}
+
+// ============================================
+// НАСТРОЙКА ТАРИФА
+// ============================================
+function saveTariffSettings() {
+  const night = parseInt(document.getElementById("tariffNight").value);
+  const ap = parseInt(document.getElementById("tariffAp").value);
+  if (!night || !ap || night < 1 || ap < 1) {
+    showAlertDialog("❌ Введите корректные значения тарифов!");
+    return;
+  }
+  localStorage.setItem("customTariff", JSON.stringify({ night, ap }));
+  updateTariffDisplay();
+  document.getElementById("tariffNight").value = "";
+  document.getElementById("tariffAp").value = "";
+  showNotification(`✅ Тарифы сохранены: 🌙${night} лей / 📦${ap} лей`);
+}
+
+function resetTariffSettings() {
+  localStorage.removeItem("customTariff");
+  updateTariffDisplay();
+  document.getElementById("tariffNight").value = "";
+  document.getElementById("tariffAp").value = "";
+  showNotification(`🔄 Тарифы сброшены: 🌙${NEW_NIGHT_PRICE} / 📦${NEW_AP_PRICE} лей`);
+}
+
+function updateTariffDisplay() {
+  const custom = getCustomPrices();
+  const night = custom ? custom.night : NEW_NIGHT_PRICE;
+  const ap = custom ? custom.ap : NEW_AP_PRICE;
+  const elN = document.getElementById("currentNightPrice");
+  const elA = document.getElementById("currentApPrice");
+  if (elN) elN.textContent = night;
+  if (elA) elA.textContent = ap;
 }
 
 // Для обратной совместимости (используется в редких местах без даты)
@@ -1031,6 +1080,7 @@ function initApp() {
 
   const savedLang = localStorage.getItem("appLanguage");
   if (savedLang) setLanguage(savedLang);
+  updateTariffDisplay();
 }
 
 if (document.readyState === "loading") {
