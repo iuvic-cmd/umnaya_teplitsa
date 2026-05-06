@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">WorkTime</string>
-    <string name="title_activity_main">WorkTime</string>
-    <string name="package_name">com.worktime.app</string>
-    <string name="custom_url_scheme">com.worktime.app</string>
+    <string name="app_name">Умная Теплица</string>
+    <string name="title_activity_main">Умная Теплица</string>
+    <string name="package_name">com.iuvic.teplitsa</string>
+    <string name="custom_url_scheme">com.iuvic.teplitsa</string>
 </resources>
