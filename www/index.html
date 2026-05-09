@@ -1,41 +1,486 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0d1117" />
-  <title id="app-title">App</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#050c07"/>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>🌿 Умная Теплица</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="app">
-    <header id="app-header">
-      <div class="header-left">
-        <button id="menu-toggle" class="icon-btn" aria-label="Меню">
-          <span class="hamburger"></span>
-        </button>
-        <h1 id="header-title"></h1>
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div style="display:flex;align-items:center;gap:8px;min-width:0">
+    <div class="pulse-dot"></div>
+    <div>
+      <div class="hdr-logo">🌿 ТЕПЛИЦА</div>
+      <div class="hdr-sub">МОНИТОРИНГ</div>
+    </div>
+  </div>
+  <div class="hdr-mid">
+    <div class="hdr-datetime" id="hdr-time">--:--:--</div>
+    <div class="hdr-date" id="hdr-date">-- --- ----</div>
+  </div>
+  <div class="hdr-right">
+    <button class="hdr-btn" onclick="toggleAlarmPanel()" id="bell-btn" title="Аварии">
+      🔔
+      <span class="alarm-count" id="alarm-count" style="display:none">0</span>
+    </button>
+    <button class="hdr-btn" onclick="switchTab('settings')" title="Настройки">⚙️</button>
+  </div>
+</div>
+
+<!-- ALARM PANEL -->
+<div class="alarm-panel" id="alarm-panel">
+  <div class="alarm-panel-head">
+    <span>🚨 АВАРИИ И ПРЕДУПРЕЖДЕНИЯ</span>
+    <button class="alarm-dismiss" onclick="dismissAllAlarms()">Снять все</button>
+  </div>
+  <div id="alarm-list"></div>
+</div>
+
+<!-- SEASON BAR -->
+<div class="season-bar summer" id="season-bar">
+  <span class="season-bar-label" id="season-label">☀️ Режим: ЛЕТО</span>
+  <div class="season-toggle">
+    <button class="season-btn active summer" id="sbtn-summer" onclick="setSeason('summer')">ЛЕТО</button>
+    <button class="season-btn winter" id="sbtn-winter" onclick="setSeason('winter')">ЗИМА</button>
+  </div>
+</div>
+
+<!-- AUTO BAR -->
+<div class="auto-bar">
+  <span style="font-size:12px">🤖 Авторежим</span>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="auto-badge on" id="auto-badge">● ВКЛ</span>
+    <label class="tog">
+      <input type="checkbox" id="tog-auto" checked onchange="toggleAuto()">
+      <span class="tog-track"></span>
+    </label>
+  </div>
+</div>
+
+<!-- ======= PAGES ======= -->
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">ПОКАЗАТЕЛИ</span>
+      <span class="badge b-dim" id="db-upd" style="font-size:10px">● LIVE</span>
+    </div>
+    <div class="mg">
+      <div class="mbox" style="--mc:var(--green)">
+        <div class="mval" id="db-temp">--<span class="munit">°C</span></div>
+        <div class="mlbl">🌡 ТЕМПЕРАТУРА</div>
+        <canvas class="sp" id="sp-temp"></canvas>
       </div>
-      <div class="header-right" id="header-actions"></div>
-    </header>
-
-    <nav id="sidebar">
-      <div class="sidebar-brand">
-        <span id="sidebar-logo"></span>
-        <span id="sidebar-name"></span>
+      <div class="mbox" style="--mc:var(--info)">
+        <div class="mval" id="db-hum">--<span class="munit">%</span></div>
+        <div class="mlbl">💧 ВЛАЖНОСТЬ</div>
+        <canvas class="sp" id="sp-hum"></canvas>
       </div>
-      <ul id="nav-list"></ul>
-      <div class="sidebar-footer">v<span id="app-version"></span></div>
-    </nav>
-
-    <div id="overlay"></div>
-
-    <main id="content">
-      <div id="page-container"></div>
-    </main>
+      <div class="mbox" style="--mc:var(--warn)">
+        <div class="mval" id="db-co2">--<span class="munit">ppm</span></div>
+        <div class="mlbl">🌿 CO₂</div>
+        <canvas class="sp" id="sp-co2"></canvas>
+      </div>
+      <div class="mbox" style="--mc:#fbbf24">
+        <div class="mval" id="db-lux">--<span class="munit">lx</span></div>
+        <div class="mlbl">☀️ ОСВЕЩЕНИЕ</div>
+        <canvas class="sp" id="sp-lux"></canvas>
+      </div>
+    </div>
   </div>
 
-  <script src="modules/dashboard.js"></script>
-  <script src="app.js"></script>
+  <div class="card">
+    <div class="card-head"><span class="card-title">РУЧНОЕ УПРАВЛЕНИЕ</span><span class="badge b-dim" style="font-size:10px">Перекрывает авто</span></div>
+    <div class="g3">
+      <button class="btn btn-ghost" id="qb-heater" onclick="manualToggle('heater')">🔥 Обогрев</button>
+      <button class="btn btn-ghost" id="qb-fan" onclick="manualToggle('fan')">💨 Вентил.</button>
+      <button class="btn btn-ghost" id="qb-humid" onclick="manualToggle('humidifier')">💧 Увлажн.</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">СОСТОЯНИЕ СИСТЕМ</span></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <div class="crow" style="padding:7px 12px"><span class="crow-name">🔥 Отопление</span><span class="badge" id="sys-heater">ВЫКЛ</span></div>
+      <div class="crow" style="padding:7px 12px"><span class="crow-name">💨 Вентиляция</span><span class="badge" id="sys-fan">ВЫКЛ</span></div>
+      <div class="crow" style="padding:7px 12px"><span class="crow-name">💧 Увлажнение</span><span class="badge" id="sys-humid">ВЫКЛ</span></div>
+      <div class="crow" style="padding:7px 12px"><span class="crow-name">💡 Освещение</span><span class="badge b-ok" id="sys-light">ДЕНЬ</span></div>
+      <div class="crow" style="padding:7px 12px"><span class="crow-name">🪣 Бак воды</span><span class="badge" id="sys-water">--%</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">СОБЫТИЯ</span>
+      <button class="btn btn-ghost" style="padding:3px 9px;font-size:10px" onclick="clearLogs()">Очистить</button>
+    </div>
+    <div class="log-list" id="log-list"><div style="text-align:center;color:var(--muted);font-size:11px;padding:10px">Нет событий</div></div>
+  </div>
+</div>
+
+<!-- SENSORS -->
+<div class="page" id="page-sensors">
+  <div class="card">
+    <div class="card-head"><span class="card-title">ВОЗДУХ</span></div>
+    <div class="mg">
+      <div class="mbox" style="--mc:var(--green)">
+        <div class="mval" id="s-ta">--<span class="munit">°C</span></div><div class="mlbl">ТЕМП. ВОЗДУХ (DHT22)</div>
+      </div>
+      <div class="mbox" style="--mc:var(--info)">
+        <div class="mval" id="s-hu">--<span class="munit">%</span></div><div class="mlbl">ВЛАЖНОСТЬ (DHT22)</div>
+      </div>
+      <div class="mbox" style="--mc:var(--purple)">
+        <div class="mval" id="s-ts">--<span class="munit">°C</span></div><div class="mlbl">ТЕМП. ПОЧВА (DS18B20)</div>
+      </div>
+      <div class="mbox" style="--mc:var(--dim)">
+        <div class="mval" id="s-pr">--<span class="munit">hPa</span></div><div class="mlbl">ДАВЛЕНИЕ (BMP280)</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">СРЕДА</span></div>
+    <div class="mg">
+      <div class="mbox" style="--mc:var(--warn)">
+        <div class="mval" id="s-co">--<span class="munit">ppm</span></div><div class="mlbl">CO₂ (MH-Z19B)</div>
+        <div class="prog"><div class="pf" id="s-co-b" style="background:var(--warn)"></div></div>
+      </div>
+      <div class="mbox" style="--mc:#fbbf24">
+        <div class="mval" id="s-lx">--<span class="munit">lx</span></div><div class="mlbl">СВЕТ (BH1750)</div>
+        <div class="prog"><div class="pf" id="s-lx-b" style="background:#fbbf24"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">УРОВЕНЬ ВОДЫ</span></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+          <span>🪣 Бак полива</span><span class="badge" id="wl1">--%</span>
+        </div>
+        <div class="prog" style="height:8px"><div class="pf" id="wl1b" style="background:var(--info)"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+          <span>💎 Конденсат</span><span class="badge" id="wl2">--%</span>
+        </div>
+        <div class="prog" style="height:8px"><div class="pf" id="wl2b" style="background:var(--purple)"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CLIMATE -->
+<div class="page" id="page-climate">
+  <div class="card">
+    <div class="card-head"><span class="card-title">ЦЕЛЕВЫЕ ЗНАЧЕНИЯ</span><span class="badge b-dim" id="clim-season-lbl" style="font-size:10px">ЛЕТО</span></div>
+    <div class="mg">
+      <div class="mbox" style="--mc:var(--green)">
+        <div class="mval" id="clim-ttarget">--<span class="munit">°C</span></div><div class="mlbl">ЦЕЛЬ ТЕМП.</div>
+      </div>
+      <div class="mbox" style="--mc:var(--info)">
+        <div class="mval" id="clim-htarget">--<span class="munit">%</span></div><div class="mlbl">ЦЕЛЬ ВЛАЖН.</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">ВЕНТИЛЯЦИЯ</span></div>
+    <div class="crow">
+      <div class="crow-lbl">
+        <div class="crow-name">💨 Вентилятор</div>
+        <div class="crow-hint" id="fan-hint">Вкл при &gt;28°C, Выкл при &lt;25°C</div>
+      </div>
+      <label class="tog"><input type="checkbox" id="tog-fan" onchange="manualToggle('fan')"><span class="tog-track"></span></label>
+    </div>
+    <div class="crow">
+      <div class="crow-lbl">
+        <div class="crow-name">🔄 Режим вентиляции</div>
+        <div class="crow-hint" id="vent-mode-hint">Забор воздуха с улицы</div>
+      </div>
+      <span class="badge" id="vent-mode-badge">ЛЕТО</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">ОТОПЛЕНИЕ</span></div>
+    <div class="crow">
+      <div class="crow-lbl">
+        <div class="crow-name">🔥 Конвектор 2 кВт</div>
+        <div class="crow-hint" id="heat-hint">Вкл при &lt;15°C, Выкл при &gt;22°C</div>
+      </div>
+      <label class="tog"><input type="checkbox" id="tog-heater" onchange="manualToggle('heater')"><span class="tog-track"></span></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">УВЛАЖНЕНИЕ</span></div>
+    <div class="crow">
+      <div class="crow-lbl">
+        <div class="crow-name">💧 Увлажнители ×2</div>
+        <div class="crow-hint" id="humid-hint">Вкл при &lt;60%, Выкл при &gt;80%</div>
+      </div>
+      <label class="tog"><input type="checkbox" id="tog-humid" onchange="manualToggle('humidifier')"><span class="tog-track"></span></label>
+    </div>
+  </div>
+</div>
+
+<!-- IRRIGATION -->
+<div class="page" id="page-irrigation">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">ВЛАЖНОСТЬ ПОЧВЫ</span>
+      <button class="btn btn-i" style="padding:4px 10px;font-size:10px" onclick="waterAll()">💦 Полить всё</button>
+    </div>
+    <div class="soil-grid" id="soil-grid"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">БАК ПОЛИВА</span></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div class="prog" style="height:10px"><div class="pf" id="irr-wl" style="background:var(--info)"></div></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">Уровень воды</div>
+      </div>
+      <span class="badge" id="irr-wlb">--%</span>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTING -->
+<div class="page" id="page-lighting">
+  <div class="card">
+    <div class="card-head"><span class="card-title">ТЕКУЩЕЕ</span></div>
+    <div class="mg">
+      <div class="mbox" style="--mc:#fbbf24">
+        <div class="mval" id="l-lux">--<span class="munit">lx</span></div><div class="mlbl">ОСВЕЩЁННОСТЬ</div>
+      </div>
+      <div class="mbox" style="--mc:var(--green)">
+        <div class="mval" id="l-photo">--<span class="munit">ч</span></div><div class="mlbl">ФОТОПЕРИОД СЕГОДНЯ</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">РЕГИОН И КУЛЬТУРА</span></div>
+    <div style="margin-bottom:8px">
+      <div class="set-label" style="margin-bottom:5px">РЕГИОН</div>
+      <select class="sel" id="region-sel" onchange="onRegionChange()">
+        <option value="murmansk">Мурманск (68.9°N)</option>
+        <option value="spb">Санкт-Петербург (59.9°N)</option>
+        <option value="moscow" selected>Москва (55.7°N)</option>
+        <option value="kazan">Казань (55.8°N)</option>
+        <option value="ekb">Екатеринбург (56.8°N)</option>
+        <option value="novosib">Новосибирск (55.0°N)</option>
+        <option value="krasnodar">Краснодар (45.0°N)</option>
+        <option value="sochi">Сочи (43.6°N)</option>
+        <option value="vladivostok">Владивосток (43.1°N)</option>
+        <option value="minsk">Минск (53.9°N)</option>
+        <option value="kyiv">Киев (50.4°N)</option>
+        <option value="almaty">Алматы (43.3°N)</option>
+        <option value="tashkent">Ташкент (41.3°N)</option>
+      </select>
+    </div>
+    <div>
+      <div class="set-label" style="margin-bottom:5px">КУЛЬТУРА</div>
+      <select class="sel" id="crop-sel" onchange="onCropChange()">
+        <option value="tomato">Томаты (14–16 ч)</option>
+        <option value="cucumber">Огурцы (12–14 ч)</option>
+        <option value="pepper">Перец (14–16 ч)</option>
+        <option value="lettuce">Салат (12–14 ч)</option>
+        <option value="strawberry">Клубника (8–12 ч)</option>
+        <option value="greens">Зелень (12–16 ч)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">РАСЧЁТ ФОТОПЕРИОДА</span></div>
+    <div class="photo-result">
+      <div class="photo-row"><span>📍 Регион</span><span class="photo-val" id="pr-region">Москва</span></div>
+      <div class="photo-row"><span>🌅 Восход</span><span class="photo-val" id="pr-rise">--:--</span></div>
+      <div class="photo-row"><span>🌇 Закат</span><span class="photo-val" id="pr-set">--:--</span></div>
+      <div class="photo-row"><span>☀️ Световой день</span><span class="photo-val" id="pr-natural">-- ч</span></div>
+      <div class="photo-row"><span>🌱 Нужно культуре</span><span class="photo-val" id="pr-need">-- ч</span></div>
+      <div class="photo-row"><span>💡 Досветка LED</span><span class="photo-val" id="pr-supp">-- ч</span></div>
+    </div>
+    <div class="card-head" style="margin-top:4px"><span class="card-title">РАСПИСАНИЕ LED</span></div>
+    <div id="led-schedule" style="display:flex;flex-direction:column;gap:3px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">СПЕКТР LED</span></div>
+    <div class="sl-wrap">
+      <div class="sl-lbl"><span>🔴 Красный (660 нм)</span><span id="l-rv">80%</span></div>
+      <input type="range" min="0" max="100" value="80" id="sl-r" oninput="setLed('red',this.value)">
+    </div>
+    <hr class="div">
+    <div class="sl-wrap">
+      <div class="sl-lbl"><span>🔵 Синий (450 нм)</span><span id="l-bv">40%</span></div>
+      <input type="range" min="0" max="100" value="40" id="sl-b" oninput="setLed('blue',this.value)">
+    </div>
+    <div class="prog" style="height:7px;margin-top:6px"><div class="pf" id="l-rb" style="background:linear-gradient(90deg,#7f1d1d,#ef4444)"></div></div>
+    <div class="prog" style="height:7px"><div class="pf" id="l-bb" style="background:linear-gradient(90deg,#1e3a8a,#3b82f6)"></div></div>
+  </div>
+</div>
+
+<!-- CAMERAS -->
+<div class="page" id="page-cameras">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">ВИДЕОНАБЛЮДЕНИЕ</span>
+      <span class="cam-rec">REC</span>
+    </div>
+    <div class="cam-main">
+      <div class="cam-main-ph" id="cm-ph"><span class="ci">📷</span><span>Камера не подключена</span><span style="font-size:10px;opacity:.6">Введите MJPEG URL ниже</span></div>
+      <img id="cm-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;top:7px;left:7px;right:7px;display:flex;justify-content:space-between;pointer-events:none">
+        <span class="cam-tag" id="cm-label">CAM 1</span>
+        <span class="cam-tag" id="cm-time">--:--:--</span>
+      </div>
+    </div>
+    <div class="cam-grid" id="cam-thumbs"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">НАСТРОЙКА КАМЕР</span></div>
+    <div id="cam-settings" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">УПРАВЛЕНИЕ ЗАПИСЬЮ</span></div>
+    <div class="g2">
+      <button class="btn btn-r" onclick="showToast('🔴 Запись начата')">⏺ Запись</button>
+      <button class="btn btn-ghost" onclick="showToast('📸 Снимок сохранён')">📸 Снимок</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <!-- CLIMATE THRESHOLDS -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">⚙️ КЛИМАТ — ПОРОГИ</span></div>
+    <div class="set-section">
+      <div class="set-row">
+        <div><div class="set-name">🔥 Обогрев ВКЛ при</div><div class="set-sub">Температура воздуха падает ниже</div></div>
+        <div class="num-ctrl">
+          <button onclick="adj('heaterOn',-1)">−</button>
+          <span class="num-val" id="sv-heaterOn">15</span>°C
+          <button onclick="adj('heaterOn',+1)">+</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div><div class="set-name">🔥 Обогрев ВЫКЛ при</div><div class="set-sub">Температура поднялась выше</div></div>
+        <div class="num-ctrl">
+          <button onclick="adj('heaterOff',-1)">−</button>
+          <span class="num-val" id="sv-heaterOff">22</span>°C
+          <button onclick="adj('heaterOff',+1)">+</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div><div class="set-name">💨 Вентилятор ВКЛ при</div><div class="set-sub">Температура превышает</div></div>
+        <div class="num-ctrl">
+          <button onclick="adj('fanOn',-1)">−</button>
+          <span class="num-val" id="sv-fanOn">28</span>°C
+          <button onclick="adj('fanOn',+1)">+</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div><div class="set-name">💧 Увлажнитель ВКЛ при</div><div class="set-sub">Влажность ниже</div></div>
+        <div class="num-ctrl">
+          <button onclick="adj('humidOn',-1)">−</button>
+          <span class="num-val" id="sv-humidOn">60</span>%
+          <button onclick="adj('humidOn',+1)">+</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div><div class="set-name">💧 Увлажнитель ВЫКЛ при</div><div class="set-sub">Влажность выше</div></div>
+        <div class="num-ctrl">
+          <button onclick="adj('humidOff',-1)">−</button>
+          <span class="num-val" id="sv-humidOff">80</span>%
+          <button onclick="adj('humidOff',+1)">+</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <div><div class="set-name">🌿 Алерт CO₂ при</div><div class="set-sub">Уровень CO₂ превышает</div></div>
+        <div class="num-ctrl">
+          <button onclick="adj('co2Alert',-50)">−</button>
+          <span class="num-val" id="sv-co2Alert">1200</span>
+          <button onclick="adj('co2Alert',+50)">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IRRIGATION SETTINGS -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">⚙️ ПОЛИВ — ПОРОГИ</span></div>
+    <div class="set-row">
+      <div><div class="set-name">💧 Авто-полив при</div><div class="set-sub">Влажность почвы ниже</div></div>
+      <div class="num-ctrl">
+        <button onclick="adj('soilMin',-5)">−</button>
+        <span class="num-val" id="sv-soilMin">40</span>%
+        <button onclick="adj('soilMin',+5)">+</button>
+      </div>
+    </div>
+    <div class="set-row">
+      <div><div class="set-name">⏱ Длительность полива</div><div class="set-sub">Секунд на одну грядку</div></div>
+      <div class="num-ctrl">
+        <button onclick="adj('waterSec',-5)">−</button>
+        <span class="num-val" id="sv-waterSec">30</span>с
+        <button onclick="adj('waterSec',+5)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALERTS SETTINGS -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">⚙️ УВЕДОМЛЕНИЯ</span></div>
+    <div class="crow">
+      <div class="crow-lbl"><div class="crow-name">🔴 Аварийные аларм</div><div class="crow-hint">Перегрев, низкая темп., отказ</div></div>
+      <label class="tog"><input type="checkbox" id="tog-nalert" checked onchange="S.cfg.notifyAlarms=this.checked"><span class="tog-track"></span></label>
+    </div>
+    <div class="crow">
+      <div class="crow-lbl"><div class="crow-name">🟡 Предупреждения</div><div class="crow-hint">Низкий бак, сухая почва, CO₂</div></div>
+      <label class="tog"><input type="checkbox" id="tog-nwarn" checked onchange="S.cfg.notifyWarns=this.checked"><span class="tog-track"></span></label>
+    </div>
+    <div class="crow">
+      <div class="crow-lbl"><div class="crow-name">📳 Вибрация</div><div class="crow-hint">Вибросигнал при авариях</div></div>
+      <label class="tog"><input type="checkbox" id="tog-nvib" checked onchange="S.cfg.vibrate=this.checked"><span class="tog-track"></span></label>
+    </div>
+  </div>
+
+  <!-- SYSTEM -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">⚙️ СИСТЕМА</span></div>
+    <div class="g2">
+      <button class="btn btn-r" onclick="clearAlarms()">🗑 Очист. аларм</button>
+      <button class="btn btn-ghost" onclick="resetSettings()">↺ Сброс настр.</button>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--muted);line-height:1.6">
+      Умная Теплица v3 · Симуляция<br>
+      Для реального подключения: настройте ESP32 WebSocket и замените функцию simulate() на fetch() к вашему API.
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nb active" id="nav-dashboard" onclick="switchTab('dashboard')"><span class="ic">📊</span>Главная</button>
+  <button class="nb" id="nav-sensors" onclick="switchTab('sensors')"><span class="ic">🌡</span>Датчики</button>
+  <button class="nb" id="nav-climate" onclick="switchTab('climate')"><span class="ic">💨</span>Климат</button>
+  <button class="nb" id="nav-irrigation" onclick="switchTab('irrigation')"><span class="ic">💧</span>Полив</button>
+  <button class="nb" id="nav-lighting" onclick="switchTab('lighting')"><span class="ic">💡</span>Свет</button>
+  <button class="nb" id="nav-cameras" onclick="switchTab('cameras')"><span class="ic">📷</span>Камеры</button>
+  <button class="nb" id="nav-settings" onclick="switchTab('settings')"><span class="ic">⚙️</span>Настройки</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
 </body>
 </html>
