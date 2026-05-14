@@ -55,20 +55,30 @@ class EventEmitter {
 //  КОНСТАНТЫ И СПРАВОЧНИКИ
 // ====================================================================
 
+// ====================================================================
+//  WEATHER SERVICE — конфигурация
+// ====================================================================
+
+/** 🔑 OpenWeatherMap API ключ */
+const WEATHER_API_KEY = 'ecff0695fb86204bc7154641eb257cad';
+
+/** Интервал обновления погоды (мс) */
+const WEATHER_UPDATE_INTERVAL = 10 * 60 * 1000; // 10 минут
+
 const REGIONS = {
-    murmansk:   {name:'Мурманск',    lat:68.97},
-    spb:        {name:'Санкт-Петербург', lat:59.95},
-    moscow:     {name:'Москва',      lat:55.75},
-    kazan:      {name:'Казань',      lat:55.79},
-    ekb:        {name:'Екатеринбург',lat:56.83},
-    novosib:    {name:'Новосибирск', lat:55.00},
-    krasnodar:  {name:'Краснодар',   lat:45.03},
-    sochi:      {name:'Сочи',        lat:43.58},
-    vladivostok:{name:'Владивосток', lat:43.12},
-    minsk:      {name:'Минск',       lat:53.90},
-    kyiv:       {name:'Киев',        lat:50.45},
-    almaty:     {name:'Алматы',      lat:43.26},
-    tashkent:   {name:'Ташкент',     lat:41.30}
+    murmansk:   {name:'Мурманск',        lat:68.97, lon:33.07},
+    spb:        {name:'Санкт-Петербург',  lat:59.95, lon:30.32},
+    moscow:     {name:'Москва',          lat:55.75, lon:37.62},
+    kazan:      {name:'Казань',          lat:55.79, lon:49.12},
+    ekb:        {name:'Екатеринбург',    lat:56.83, lon:60.60},
+    novosib:    {name:'Новосибирск',     lat:55.00, lon:82.92},
+    krasnodar:  {name:'Краснодар',       lat:45.03, lon:38.97},
+    sochi:      {name:'Сочи',            lat:43.58, lon:39.72},
+    vladivostok:{name:'Владивосток',     lat:43.12, lon:131.90},
+    minsk:      {name:'Минск',           lat:53.90, lon:27.57},
+    kyiv:       {name:'Киев',            lat:50.45, lon:30.52},
+    almaty:     {name:'Алматы',          lat:43.26, lon:76.95},
+    tashkent:   {name:'Ташкент',         lat:41.30, lon:69.27}
 };
 
 const CROPS = {
@@ -177,6 +187,9 @@ class StateManager {
 
         // Логи
         this.logs = [];
+
+        // Уличная погода (заполняется WeatherService)
+        this.outdoor = null;
     }
 
     /** Симуляция датчиков */
@@ -643,6 +656,44 @@ class DashboardRenderer {
         setT('cm-time', pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds()));
     }
 
+    /** Обновление виджета уличной погоды */
+    _updateOutdoorWeather() {
+        const w = this.state.outdoor;
+        const card = el('outdoor-weather-card');
+        if (!card) return;
+
+        if (!w) {
+            card.innerHTML = '<div class="card-head"><span class="card-title">🌍 УЛИЦА</span><span class="badge b-dim">нет данных</span></div>' +
+                '<div style="color:var(--muted);font-size:12px;padding:4px 0">Подключение к сети...</div>';
+            return;
+        }
+
+        const ago = Math.round((new Date() - w.updated) / 60000);
+        const agoStr = ago < 1 ? 'только что' : ago + ' мин назад';
+        const tempColor = w.temp < 0 ? 'color:#00b4fc' : w.temp > 30 ? 'color:#ffa502' : 'color:var(--text)';
+
+        card.innerHTML =
+            '<div class="card-head">' +
+                '<span class="card-title">🌍 УЛИЦА — ' + w.city + '</span>' +
+                '<span class="badge b-dim" style="font-size:9px">' + agoStr + '</span>' +
+            '</div>' +
+            '<div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:12px;align-items:center;margin-top:6px">' +
+                '<div style="text-align:center;min-width:64px">' +
+                    '<div style="font-size:32px;line-height:1">' + w.icon + '</div>' +
+                    '<div style="font-size:22px;font-weight:700;' + tempColor + '">' + w.temp + '°C</div>' +
+                    '<div style="font-size:9px;color:var(--muted)">ощущ. ' + w.feels_like + '°C</div>' +
+                '</div>' +
+                '<div style="display:flex;flex-direction:column;gap:5px">' +
+                    '<div style="font-size:12px;color:var(--dim)">💧 ' + w.humidity + '%</div>' +
+                    '<div style="font-size:12px;color:var(--dim)">💨 ' + w.wind + ' м/с</div>' +
+                    '<div style="font-size:12px;color:var(--dim)">📊 ' + w.pressure + ' hPa</div>' +
+                '</div>' +
+                '<div style="display:flex;align-items:center;justify-content:center">' +
+                    '<div style="font-size:10px;color:var(--muted);text-align:center;line-height:1.5">' + w.description + '</div>' +
+                '</div>' +
+            '</div>';
+    }
+
     _drawSpark(cid, data, color) {
         const c = el(cid);
         if (!c || data.length < 2) return;
@@ -691,6 +742,138 @@ class DashboardRenderer {
 //  APPLICATION — главный контроллер приложения
 // ====================================================================
 
+
+// ====================================================================
+//  WEATHER SERVICE — получение реальной погоды
+// ====================================================================
+
+class WeatherService {
+    constructor(state, bus) {
+        this.state = state;
+        this.bus = bus;
+    }
+
+    /** Запуск: первый запрос сразу, потом каждые 10 мин */
+    start() {
+        this._fetch();
+        setInterval(() => this._fetch(), WEATHER_UPDATE_INTERVAL);
+    }
+
+    /** Основной запрос: OpenWeatherMap если токен есть, иначе Open-Meteo */
+    async _fetch() {
+        const reg = REGIONS[this.state.cfg.region];
+        if (!reg) return;
+
+        const hasToken = WEATHER_API_KEY && WEATHER_API_KEY !== 'ВСТАВЬТЕ_ВАШ_ТОКЕН_ЗДЕСЬ';
+        if (hasToken) {
+            await this._fetchOWM(reg);
+        } else {
+            await this._fetchOpenMeteo(reg);
+        }
+    }
+
+    /** OpenWeatherMap (нужен токен) */
+    async _fetchOWM(reg) {
+        try {
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${reg.lat}&lon=${reg.lon}&appid=${WEATHER_API_KEY}&units=metric&lang=ru`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const d = await res.json();
+
+            this.state.outdoor = {
+                temp:        Math.round(d.main.temp * 10) / 10,
+                feels_like:  Math.round(d.main.feels_like * 10) / 10,
+                humidity:    d.main.humidity,
+                pressure:    d.main.pressure,
+                wind:        Math.round(d.wind.speed * 10) / 10,
+                description: d.weather[0].description,
+                icon:        this._owmIcon(d.weather[0].id),
+                city:        d.name,
+                updated:     new Date()
+            };
+            this.bus.emit('weather:updated', this.state.outdoor);
+            this.state.addLog('🌤 Погода: ' + this.state.outdoor.icon + ' ' + this.state.outdoor.temp + '°C, ' + this.state.outdoor.description, 'ok');
+        } catch (e) {
+            console.error('[Weather] OWM error:', e);
+            const reg2 = REGIONS[this.state.cfg.region];
+            if (reg2) await this._fetchOpenMeteo(reg2);
+        }
+    }
+
+    /** Open-Meteo (бесплатно, без токена — fallback) */
+    async _fetchOpenMeteo(reg) {
+        try {
+            const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + reg.lat +
+                '&longitude=' + reg.lon +
+                '&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code,surface_pressure&wind_speed_unit=ms';
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const d = await res.json();
+            const c = d.current;
+
+            this.state.outdoor = {
+                temp:        Math.round(c.temperature_2m * 10) / 10,
+                feels_like:  Math.round(c.apparent_temperature * 10) / 10,
+                humidity:    c.relative_humidity_2m,
+                pressure:    Math.round(c.surface_pressure),
+                wind:        Math.round(c.wind_speed_10m * 10) / 10,
+                description: this._wmoDesc(c.weather_code),
+                icon:        this._wmoIcon(c.weather_code),
+                city:        reg.name,
+                updated:     new Date()
+            };
+            this.bus.emit('weather:updated', this.state.outdoor);
+            this.state.addLog('🌤 Погода (Open-Meteo): ' + this.state.outdoor.icon + ' ' + this.state.outdoor.temp + '°C, ' + this.state.outdoor.description, 'ok');
+        } catch (e) {
+            console.error('[Weather] Open-Meteo error:', e);
+            this.state.outdoor = null;
+            this.bus.emit('weather:updated', null);
+        }
+    }
+
+    /** Иконки OpenWeatherMap по weather_id */
+    _owmIcon(id) {
+        if (id >= 200 && id < 300) return '⛈️';
+        if (id >= 300 && id < 400) return '🌦️';
+        if (id >= 500 && id < 600) return '🌧️';
+        if (id >= 600 && id < 700) return '🌨️';
+        if (id >= 700 && id < 800) return '🌫️';
+        if (id === 800)             return '☀️';
+        if (id === 801)             return '🌤️';
+        if (id === 802)             return '⛅';
+        return '☁️';
+    }
+
+    /** Иконки WMO (Open-Meteo) */
+    _wmoIcon(code) {
+        if (code === 0)              return '☀️';
+        if (code <= 2)               return '🌤️';
+        if (code === 3)              return '☁️';
+        if (code <= 49)              return '🌫️';
+        if (code <= 59)              return '🌦️';
+        if (code <= 69)              return '🌧️';
+        if (code <= 79)              return '🌨️';
+        if (code <= 84)              return '🌧️';
+        if (code <= 99)              return '⛈️';
+        return '🌡️';
+    }
+
+    /** Описания WMO на русском */
+    _wmoDesc(code) {
+        const d = {
+            0:'ясно', 1:'преим. ясно', 2:'переем. облачность', 3:'пасмурно',
+            45:'туман', 48:'изморозь',
+            51:'лёгкая морось', 53:'морось', 55:'сильная морось',
+            61:'лёгкий дождь', 63:'дождь', 65:'сильный дождь',
+            71:'лёгкий снег', 73:'снег', 75:'сильный снег', 77:'снежные зёрна',
+            80:'кратковр. дождь', 81:'ливень', 82:'сильный ливень',
+            85:'снежный ливень', 86:'сильный снежный ливень',
+            95:'гроза', 96:'гроза с градом', 99:'гроза с сильным градом'
+        };
+        return d[code] || 'переем. облачность';
+    }
+}
+
 class SmartGreenhouseApp {
     constructor() {
         this.bus = new EventEmitter();
@@ -699,6 +882,7 @@ class SmartGreenhouseApp {
         this.autoCtrl = new AutoController(this.state, this.bus);
         this.cameraMgr = new CameraManager(this.state, this.bus);
         this.renderer = new DashboardRenderer(this.state, this.bus);
+        this.weatherSvc = new WeatherService(this.state, this.bus);
 
         this.currentTab = 'dashboard';
         this.toastTimer = null;
@@ -708,6 +892,7 @@ class SmartGreenhouseApp {
         this.bus.on('alarms:changed', () => this.renderer._updateAlarmUI());
         this.bus.on('toast:show', (msg) => this._showToast(msg));
         this.bus.on('cameras:render', () => this._renderCameras());
+        this.bus.on('weather:updated', () => this.renderer._updateOutdoorWeather());
 
         this._boot();
     }
@@ -726,6 +911,9 @@ class SmartGreenhouseApp {
         this.renderer.updateAll();
         this.renderer.drawSparklines();
         this._updateLightingPage();
+
+        // Запуск сервиса погоды
+        this.weatherSvc.start();
 
         // Основной цикл симуляции
         setInterval(() => {
