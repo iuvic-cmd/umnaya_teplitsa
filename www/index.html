@@ -24,6 +24,36 @@ body{font-family:var(--mono);background:var(--bg);color:var(--text);min-height:1
 body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,127,.012) 3px,rgba(0,255,127,.012) 4px);pointer-events:none;z-index:0}
 .wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 12px 96px}
 
+/* ESP32 STATUS BAR */
+.esp-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;margin-bottom:10px;border:1px solid;transition:all .3s}
+.esp-bar.connected{background:rgba(0,255,127,.06);border-color:rgba(0,255,127,.3)}
+.esp-bar.disconnected{background:rgba(255,71,87,.06);border-color:rgba(255,71,87,.3)}
+.esp-bar.connecting{background:rgba(255,165,2,.06);border-color:rgba(255,165,2,.3)}
+.esp-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.esp-bar.connected .esp-status-dot{background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s infinite}
+.esp-bar.disconnected .esp-status-dot{background:var(--danger)}
+.esp-bar.connecting .esp-status-dot{background:var(--warn);animation:blink .8s infinite}
+.esp-info{flex:1;margin-left:8px}
+.esp-label{font-size:11px;font-weight:700}
+.esp-bar.connected .esp-label{color:var(--green)}
+.esp-bar.disconnected .esp-label{color:var(--danger)}
+.esp-bar.connecting .esp-label{color:var(--warn)}
+.esp-sub{font-size:9px;color:var(--muted);margin-top:1px}
+.esp-btn{background:var(--s2);border:1px solid var(--b2);border-radius:6px;padding:4px 10px;font-size:10px;font-family:var(--mono);color:var(--dim);cursor:pointer}
+.esp-btn:active{opacity:.7}
+
+/* ESP IP MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-bg.hidden{display:none}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);padding:20px;width:100%;max-width:360px}
+.modal-title{font-family:var(--font);font-size:13px;font-weight:900;color:var(--green);margin-bottom:12px}
+.modal-desc{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+.modal-inp{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px 12px;font-size:13px;font-family:var(--mono);color:var(--text);outline:none;margin-bottom:10px}
+.modal-inp:focus{border-color:var(--green)}
+.modal-row{display:flex;gap:8px}
+.modal-hint{font-size:10px;color:var(--muted);margin-bottom:12px}
+code{background:var(--s3);padding:2px 6px;border-radius:4px;color:var(--green);font-family:var(--mono)}
+
 /* HEADER */
 .hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 0 10px;border-bottom:1px solid var(--b2);margin-bottom:12px;gap:8px}
 .hdr-logo{font-family:var(--font);font-size:13px;font-weight:900;color:var(--green);text-shadow:0 0 20px rgba(0,255,127,.5);white-space:nowrap}
@@ -37,14 +67,12 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s ease-in-out infinite;flex-shrink:0}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 
-/* CROP MODE BAR */
 .crop-mode-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;margin-bottom:10px;font-size:12px;flex-wrap:wrap;gap:8px}
 .crop-mode-name{font-weight:700;color:var(--green);display:flex;align-items:center;gap:6px}
 .crop-mode-desc{font-size:10px;color:var(--muted);flex:1;min-width:120px}
 .crop-mode-select{background:var(--s3);border:1px solid var(--b2);border-radius:8px;padding:6px 10px;font-size:11px;font-family:var(--mono);color:var(--text);outline:none;cursor:pointer;max-width:140px}
 .crop-mode-select option{background:var(--s1);color:var(--text)}
 
-/* OUTDOOR WEATHER */
 .outdoor-weather{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(0,180,252,.06);border:1px solid rgba(0,180,252,.2);border-radius:var(--r);margin-bottom:10px;flex-wrap:wrap}
 .outdoor-icon{font-size:28px;flex-shrink:0}
 .outdoor-info{flex:1;min-width:100px}
@@ -53,7 +81,6 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .outdoor-details{display:flex;gap:12px;font-size:10px;color:var(--muted)}
 .outdoor-updated{font-size:9px;color:var(--muted);margin-top:2px}
 
-/* ALARM PANEL */
 .alarm-panel{background:var(--s1);border:1px solid rgba(255,71,87,.4);border-radius:var(--r);margin-bottom:10px;overflow:hidden;max-height:0;transition:max-height .3s ease}
 .alarm-panel.open{max-height:400px}
 .alarm-panel-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,71,87,.2);font-size:12px;font-weight:700;color:var(--danger)}
@@ -64,7 +91,6 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .alarm-sev-info{color:var(--info)}
 .alarm-dismiss{background:var(--s3);border:1px solid var(--b1);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--dim);font-family:var(--mono)}
 
-/* SEASON BANNER */
 .season-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:var(--r);margin-bottom:10px;border:1px solid}
 .season-bar.summer{background:rgba(255,165,2,.08);border-color:rgba(255,165,2,.3);color:var(--warn)}
 .season-bar.winter{background:rgba(0,180,252,.08);border-color:rgba(0,180,252,.3);color:var(--info)}
@@ -75,34 +101,31 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .season-btn.active.winter{background:rgba(0,180,252,.2);border-color:var(--info);color:var(--info)}
 .season-btn:not(.active){background:var(--s2);border-color:var(--b1);color:var(--dim)}
 
-/* AUTO MODE BAR */
 .auto-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;margin-bottom:10px;font-size:12px}
 .auto-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px}
 .auto-badge.on{background:rgba(0,255,127,.1);border:1px solid rgba(0,255,127,.3);color:var(--green)}
 .auto-badge.off{background:var(--s3);border:1px solid var(--b1);color:var(--dim)}
 
-/* CARDS */
 .card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:10px;position:relative;overflow:hidden}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--b2),transparent)}
 .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .card-title{font-family:var(--font);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
 
-/* METRICS */
 .mg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mbox{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:12px;position:relative;overflow:hidden}
 .mbox::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--mc,var(--green));opacity:.4}
 .mval{font-family:var(--font);font-size:24px;font-weight:900;line-height:1;color:var(--mc,var(--green));text-shadow:0 0 16px var(--mc,var(--green))}
 .munit{font-size:11px;font-weight:400;opacity:.65}
 .mlbl{font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.4px}
+/* LIVE badge on real sensor */
+.live-badge{display:inline-block;background:rgba(0,255,127,.15);border:1px solid rgba(0,255,127,.4);color:var(--green);font-size:8px;padding:1px 5px;border-radius:4px;margin-left:4px;vertical-align:middle;font-family:var(--mono)}
 canvas.sp{display:block;width:100%;height:24px;margin-top:5px;opacity:.7}
 
-/* CONTROL ROW */
 .crow{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;margin-bottom:6px}
 .crow-lbl{display:flex;flex-direction:column;gap:2px}
 .crow-name{font-size:13px;display:flex;align-items:center;gap:6px}
 .crow-hint{font-size:10px;color:var(--muted)}
 
-/* TOGGLE */
 .tog{position:relative;width:46px;height:26px;flex-shrink:0}
 .tog input{opacity:0;width:0;height:0;position:absolute}
 .tog-track{position:absolute;inset:0;background:var(--s3);border:1px solid var(--muted);border-radius:26px;cursor:pointer;transition:all .2s}
@@ -110,7 +133,6 @@ canvas.sp{display:block;width:100%;height:24px;margin-top:5px;opacity:.7}
 .tog input:checked~.tog-track{background:var(--green3);border-color:var(--green)}
 .tog input:checked~.tog-track::after{transform:translateX(20px);background:var(--green);box-shadow:0 0 8px var(--green)}
 
-/* BUTTONS */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 14px;border-radius:8px;border:1px solid;font-size:12px;font-family:var(--mono);font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.3px}
 .btn:active{transform:scale(.95)}
 .btn-g{background:rgba(0,255,127,.1);border-color:var(--green);color:var(--green)}
@@ -122,7 +144,6 @@ canvas.sp{display:block;width:100%;height:24px;margin-top:5px;opacity:.7}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 
-/* BADGES */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
 .b-ok{background:rgba(0,255,127,.1);border:1px solid rgba(0,255,127,.3);color:var(--green)}
 .b-warn{background:rgba(255,165,2,.1);border:1px solid rgba(255,165,2,.3);color:var(--warn)}
@@ -130,26 +151,23 @@ canvas.sp{display:block;width:100%;height:24px;margin-top:5px;opacity:.7}
 .b-info{background:rgba(0,180,252,.1);border:1px solid rgba(0,180,252,.3);color:var(--info)}
 .b-dim{background:var(--s3);border:1px solid var(--b1);color:var(--dim)}
 
-/* PROGRESS */
 .prog{height:5px;background:var(--s3);border-radius:3px;overflow:hidden;margin:5px 0}
 .pf{height:100%;border-radius:3px;transition:width .5s ease}
 
-/* LOG */
 .log-list{max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
 .log-item{display:flex;align-items:center;justify-content:space-between;padding:5px 9px;background:var(--s2);border-radius:6px;font-size:11px;border-left:2px solid var(--b1)}
 .li-ok{border-left-color:var(--green)}
 .li-warn{border-left-color:var(--warn)}
 .li-err{border-left-color:var(--danger)}
 .li-auto{border-left-color:var(--info)}
+.li-esp{border-left-color:var(--purple)}
 .log-t{color:var(--muted);font-size:10px;white-space:nowrap;margin-left:6px}
 
-/* SOIL */
 .soil-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .soil-card{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:12px}
 .soil-card.watering{border-color:var(--info);background:rgba(0,180,252,.05)}
 .soil-card.dry{border-color:var(--warn)}
 
-/* SETTINGS */
 .set-section{margin-bottom:14px}
 .set-label{font-family:var(--font);font-size:9px;font-weight:700;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
 .set-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;margin-bottom:6px;gap:8px}
@@ -160,24 +178,20 @@ canvas.sp{display:block;width:100%;height:24px;margin-top:5px;opacity:.7}
 .num-ctrl button:active{background:var(--b2)}
 .num-val{font-size:14px;font-weight:700;color:var(--text);min-width:36px;text-align:center}
 
-/* SELECT */
 select.sel{background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;font-size:12px;font-family:var(--mono);color:var(--text);outline:none;width:100%;cursor:pointer}
 select.sel option{background:var(--s1)}
 
-/* LIGHTING */
 .photo-result{background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:12px;margin-bottom:8px}
 .photo-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--b1)}
 .photo-row:last-child{border-bottom:none}
 .photo-val{color:var(--green);font-weight:700}
 
-/* SLIDER */
 .sl-wrap{padding:4px 0}
 .sl-lbl{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
 .sl-lbl span:last-child{color:var(--green)}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;background:var(--s3);border-radius:3px;outline:none}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--green);cursor:pointer;box-shadow:0 0 8px rgba(0,255,127,.5)}
 
-/* CAM */
 .cam-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .cam-thumb{position:relative;background:var(--s2);border:1px solid var(--b1);border-radius:8px;overflow:hidden;aspect-ratio:16/9;cursor:pointer}
 .cam-thumb.sel{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
@@ -197,31 +211,25 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .url-inp:focus{border-color:var(--green)}
 .url-inp::placeholder{color:var(--muted)}
 
-/* NAV */
 .nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(5,12,7,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--b2);display:flex;padding:4px 2px calc(4px + env(safe-area-inset-bottom))}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;background:none;border:none;cursor:pointer;border-radius:8px;transition:all .15s;color:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:.2px}
 .nb .ic{font-size:18px;line-height:1}
 .nb.active{color:var(--green);background:var(--gg)}
 
-/* TOAST */
 .toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--s1);border:1px solid var(--b2);color:var(--green);padding:10px 20px;border-radius:var(--r);font-size:13px;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.5);transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;pointer-events:none}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
-/* PAGE */
 .page{display:none}
 .page.active{display:block}
 
-/* SCHED ROW */
 .sr{display:flex;justify-content:space-between;font-size:12px;padding:7px 0;border-bottom:1px solid var(--b1)}
 .sr:last-child{border-bottom:none}
 .sr-t{color:var(--muted);font-size:10px}
 
-/* DIVIDER */
 hr.div{border:none;border-top:1px solid var(--b1);margin:10px 0}
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
 
-/* CROP PRESET CARDS */
 .crop-preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .crop-preset-card{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:10px;cursor:pointer;transition:all .15s}
 .crop-preset-card.active{border-color:var(--green);box-shadow:0 0 0 1px var(--green);background:rgba(0,255,127,.05)}
@@ -232,6 +240,22 @@ hr.div{border:none;border-top:1px solid var(--b1);margin:10px 0}
 </style>
 </head>
 <body>
+
+<!-- ESP32 IP MODAL -->
+<div class="modal-bg" id="modal-esp">
+  <div class="modal">
+    <div class="modal-title">📡 Подключение ESP32</div>
+    <div class="modal-desc">Введите IP адрес вашего ESP32. Найдите его в Serial Monitor Arduino IDE после загрузки кода.</div>
+    <div class="modal-hint">Пример: <code>192.168.1.105</code></div>
+    <input class="modal-inp" id="esp-ip-input" placeholder="192.168.1.105" type="text" inputmode="decimal">
+    <div class="modal-hint" style="margin-bottom:14px">💡 ESP32 и телефон должны быть в одной WiFi сети</div>
+    <div class="modal-row">
+      <button class="btn btn-ghost btn-full" onclick="closeEspModal(true)">Симуляция</button>
+      <button class="btn btn-g btn-full" onclick="saveEspIp()">✓ Подключить</button>
+    </div>
+  </div>
+</div>
+
 <div class="wrap">
 
 <!-- HEADER -->
@@ -249,14 +273,23 @@ hr.div{border:none;border-top:1px solid var(--b1);margin:10px 0}
   </div>
   <div class="hdr-right">
     <button class="hdr-btn" onclick="toggleAlarmPanel()" id="bell-btn" title="Аварии">
-      🔔
-      <span class="alarm-count" id="alarm-count" style="display:none">0</span>
+      🔔<span class="alarm-count" id="alarm-count" style="display:none">0</span>
     </button>
     <button class="hdr-btn" onclick="switchTab('settings')" title="Настройки">⚙️</button>
   </div>
 </div>
 
-<!-- OUTDOOR WEATHER — РЕАЛЬНАЯ ПОГОДА -->
+<!-- ESP32 STATUS BAR -->
+<div class="esp-bar disconnected" id="esp-bar">
+  <div class="esp-status-dot" id="esp-dot"></div>
+  <div class="esp-info">
+    <div class="esp-label" id="esp-label">ESP32 не подключён</div>
+    <div class="esp-sub" id="esp-sub">Нажмите "Настроить" для подключения</div>
+  </div>
+  <button class="esp-btn" onclick="openEspModal()">Настроить</button>
+</div>
+
+<!-- OUTDOOR WEATHER -->
 <div class="outdoor-weather" id="outdoor-weather">
   <div class="outdoor-icon" id="ow-icon">🌤</div>
   <div class="outdoor-info">
@@ -318,16 +351,11 @@ hr.div{border:none;border-top:1px solid var(--b1);margin:10px 0}
   <span style="font-size:12px">🤖 Авторежим</span>
   <div style="display:flex;align-items:center;gap:8px">
     <span class="auto-badge on" id="auto-badge">● ВКЛ</span>
-    <label class="tog">
-      <input type="checkbox" id="tog-auto" checked onchange="toggleAuto()">
-      <span class="tog-track"></span>
-    </label>
+    <label class="tog"><input type="checkbox" id="tog-auto" checked onchange="toggleAuto()"><span class="tog-track"></span></label>
   </div>
 </div>
 
-<!-- ======= PAGES ======= -->
-
-<!-- DASHBOARD -->
+<!-- PAGES -->
 <div class="page active" id="page-dashboard">
   <div class="card">
     <div class="card-head">
@@ -337,12 +365,12 @@ hr.div{border:none;border-top:1px solid var(--b1);margin:10px 0}
     <div class="mg">
       <div class="mbox" style="--mc:var(--green)">
         <div class="mval" id="db-temp">--<span class="munit">°C</span></div>
-        <div class="mlbl">🌡 ТЕМПЕРАТУРА</div>
+        <div class="mlbl">🌡 ТЕМПЕРАТУРА <span class="live-badge" id="temp-src" style="display:none">ESP32</span></div>
         <canvas class="sp" id="sp-temp"></canvas>
       </div>
       <div class="mbox" style="--mc:var(--info)">
         <div class="mval" id="db-hum">--<span class="munit">%</span></div>
-        <div class="mlbl">💧 ВЛАЖНОСТЬ</div>
+        <div class="mlbl">💧 ВЛАЖНОСТЬ <span class="live-badge" id="hum-src" style="display:none">ESP32</span></div>
         <canvas class="sp" id="sp-hum"></canvas>
       </div>
       <div class="mbox" style="--mc:var(--warn)">
@@ -387,9 +415,8 @@ hr.div{border:none;border-top:1px solid var(--b1);margin:10px 0}
   </div>
 </div>
 
-<!-- SENSORS -->
 <div class="page" id="page-sensors">
-  <div class="card"><div class="card-head"><span class="card-title">ВОЗДУХ</span></div>
+  <div class="card"><div class="card-head"><span class="card-title">ВОЗДУХ</span><span class="badge b-info" id="sensor-src-badge" style="font-size:9px">SIM</span></div>
     <div class="mg">
       <div class="mbox" style="--mc:var(--green)"><div class="mval" id="s-ta">--<span class="munit">°C</span></div><div class="mlbl">ТЕМП. ВОЗДУХ (DHT22)</div></div>
       <div class="mbox" style="--mc:var(--info)"><div class="mval" id="s-hu">--<span class="munit">%</span></div><div class="mlbl">ВЛАЖНОСТЬ (DHT22)</div></div>
@@ -411,14 +438,12 @@ hr.div{border:none;border-top:1px solid var(--b1);margin:10px 0}
   </div>
 </div>
 
-<!-- CLIMATE -->
 <div class="page" id="page-climate">
   <div class="card"><div class="card-head"><span class="card-title">ЦЕЛЕВЫЕ ЗНАЧЕНИЯ</span><span class="badge b-dim" id="clim-season-lbl">ЛЕТО</span></div>
     <div class="mg"><div class="mbox" style="--mc:var(--green)"><div class="mval" id="clim-ttarget">--<span class="munit">°C</span></div><div class="mlbl">ЦЕЛЬ ТЕМП.</div></div><div class="mbox" style="--mc:var(--info)"><div class="mval" id="clim-htarget">--<span class="munit">%</span></div><div class="mlbl">ЦЕЛЬ ВЛАЖН.</div></div></div>
   </div>
   <div class="card"><div class="card-head"><span class="card-title">ВЕНТИЛЯЦИЯ</span></div>
     <div class="crow"><div class="crow-lbl"><div class="crow-name">💨 Вентилятор</div><div class="crow-hint" id="fan-hint">Вкл при >28°C</div></div><label class="tog"><input type="checkbox" id="tog-fan" onchange="manualToggle('fan')"><span class="tog-track"></span></label></div>
-    <div class="crow"><div class="crow-lbl"><div class="crow-name">🔄 Режим вентиляции</div><div class="crow-hint" id="vent-mode-hint">Забор воздуха с улицы</div></div><span class="badge" id="vent-mode-badge">ЛЕТО</span></div>
   </div>
   <div class="card"><div class="card-head"><span class="card-title">ОТОПЛЕНИЕ</span></div>
     <div class="crow"><div class="crow-lbl"><div class="crow-name">🔥 Конвектор 2 кВт</div><div class="crow-hint" id="heat-hint">Вкл при <18°C</div></div><label class="tog"><input type="checkbox" id="tog-heater" onchange="manualToggle('heater')"><span class="tog-track"></span></label></div>
@@ -428,56 +453,59 @@ hr.div{border:none;border-top:1px solid var(--b1);margin:10px 0}
   </div>
 </div>
 
-<!-- IRRIGATION -->
 <div class="page" id="page-irrigation">
   <div class="card"><div class="card-head"><span class="card-title">ВЛАЖНОСТЬ ПОЧВЫ</span><button class="btn btn-i" style="padding:4px 10px;font-size:10px" onclick="waterAll()">💦 Полить всё</button></div><div class="soil-grid" id="soil-grid"></div></div>
   <div class="card"><div class="card-head"><span class="card-title">БАК ПОЛИВА</span></div><div style="display:flex;align-items:center;gap:12px"><div style="flex:1"><div class="prog" style="height:10px"><div class="pf" id="irr-wl" style="background:var(--info)"></div></div><div style="font-size:10px;color:var(--muted);margin-top:3px">Уровень воды</div></div><span class="badge" id="irr-wlb">--%</span></div></div>
 </div>
 
-<!-- LIGHTING -->
 <div class="page" id="page-lighting">
   <div class="card"><div class="card-head"><span class="card-title">ТЕКУЩЕЕ</span></div><div class="mg"><div class="mbox" style="--mc:#fbbf24"><div class="mval" id="l-lux">--<span class="munit">lx</span></div><div class="mlbl">ОСВЕЩЁННОСТЬ</div></div><div class="mbox" style="--mc:var(--green)"><div class="mval" id="l-photo">--<span class="munit">ч</span></div><div class="mlbl">ФОТОПЕРИОД СЕГОДНЯ</div></div></div></div>
   <div class="card"><div class="card-head"><span class="card-title">РЕГИОН И КУЛЬТУРА</span></div>
-    <div style="margin-bottom:8px"><div class="set-label">РЕГИОН</div><select class="sel" id="region-sel" onchange="onRegionChange()"><option value="chisinau" selected>Кишинёв, Молдова (47.0°N)</option><option value="murmansk">Мурманск (68.9°N)</option><option value="spb">Санкт-Петербург (59.9°N)</option><option value="moscow">Москва (55.7°N)</option><option value="kazan">Казань (55.8°N)</option><option value="ekb">Екатеринбург (56.8°N)</option><option value="novosib">Новосибирск (55.0°N)</option><option value="krasnodar">Краснодар (45.0°N)</option><option value="sochi">Сочи (43.6°N)</option><option value="vladivostok">Владивосток (43.1°N)</option><option value="minsk">Минск (53.9°N)</option><option value="kyiv">Киев (50.4°N)</option><option value="almaty">Алматы (43.3°N)</option><option value="tashkent">Ташкент (41.3°N)</option></select></div>
-    <div><div class="set-label">КУЛЬТУРА (для расчёта досветки)</div><select class="sel" id="crop-sel" onchange="onCropChange()"><option value="tomato">Томаты (14–16 ч)</option><option value="cucumber">Огурцы (12–14 ч)</option><option value="pepper">Перец (14–16 ч)</option><option value="lettuce">Салат (12–14 ч)</option><option value="strawberry">Клубника (8–12 ч)</option><option value="greens">Зелень (12–16 ч)</option><option value="eggplant">Баклажаны (13–15 ч)</option><option value="radish">Редис (10–13 ч)</option><option value="onion">Лук зелёный (10–14 ч)</option><option value="microgreens">Микрозелень (12–16 ч)</option><option value="basil">Базилик (14–17 ч)</option></select></div>
+    <div style="margin-bottom:8px"><div class="set-label">РЕГИОН</div><select class="sel" id="region-sel" onchange="onRegionChange()"><option value="chisinau" selected>Кишинёв, Молдова (47.0°N)</option><option value="moscow">Москва (55.7°N)</option><option value="spb">Санкт-Петербург (59.9°N)</option><option value="krasnodar">Краснодар (45.0°N)</option></select></div>
+    <div><div class="set-label">КУЛЬТУРА</div><select class="sel" id="crop-sel" onchange="onCropChange()"><option value="tomato">Томаты (14–16 ч)</option><option value="cucumber">Огурцы (12–14 ч)</option><option value="pepper">Перец (14–16 ч)</option><option value="lettuce">Салат (12–14 ч)</option></select></div>
   </div>
-  <div class="card"><div class="card-head"><span class="card-title">РАСЧЁТ ФОТОПЕРИОДА</span></div><div class="photo-result"><div class="photo-row"><span>📍 Регион</span><span class="photo-val" id="pr-region">Кишинёв</span></div><div class="photo-row"><span>🌅 Восход</span><span class="photo-val" id="pr-rise">--:--</span></div><div class="photo-row"><span>🌇 Закат</span><span class="photo-val" id="pr-set">--:--</span></div><div class="photo-row"><span>☀️ Световой день</span><span class="photo-val" id="pr-natural">-- ч</span></div><div class="photo-row"><span>🌱 Нужно культуре</span><span class="photo-val" id="pr-need">-- ч</span></div><div class="photo-row"><span>💡 Досветка LED</span><span class="photo-val" id="pr-supp">-- ч</span></div></div><div class="card-head" style="margin-top:4px"><span class="card-title">РАСПИСАНИЕ LED</span></div><div id="led-schedule"></div></div>
-  <div class="card"><div class="card-head"><span class="card-title">СПЕКТР LED</span></div><div class="sl-wrap"><div class="sl-lbl"><span>🔴 Красный (660 нм)</span><span id="l-rv">80%</span></div><input type="range" min="0" max="100" value="80" id="sl-r" oninput="setLed('red',this.value)"></div><hr class="div"><div class="sl-wrap"><div class="sl-lbl"><span>🔵 Синий (450 нм)</span><span id="l-bv">40%</span></div><input type="range" min="0" max="100" value="40" id="sl-b" oninput="setLed('blue',this.value)"></div><div class="prog" style="height:7px;margin-top:6px"><div class="pf" id="l-rb" style="background:linear-gradient(90deg,#7f1d1d,#ef4444)"></div></div><div class="prog" style="height:7px"><div class="pf" id="l-bb" style="background:linear-gradient(90deg,#1e3a8a,#3b82f6)"></div></div></div>
+  <div class="card"><div class="card-head"><span class="card-title">РАСЧЁТ ФОТОПЕРИОДА</span></div><div class="photo-result"><div class="photo-row"><span>📍 Регион</span><span class="photo-val" id="pr-region">Кишинёв</span></div><div class="photo-row"><span>🌅 Восход</span><span class="photo-val" id="pr-rise">--:--</span></div><div class="photo-row"><span>🌇 Закат</span><span class="photo-val" id="pr-set">--:--</span></div><div class="photo-row"><span>☀️ Световой день</span><span class="photo-val" id="pr-natural">-- ч</span></div><div class="photo-row"><span>🌱 Нужно культуре</span><span class="photo-val" id="pr-need">-- ч</span></div><div class="photo-row"><span>💡 Досветка LED</span><span class="photo-val" id="pr-supp">-- ч</span></div></div><div id="led-schedule"></div></div>
 </div>
 
-<!-- CAMERAS -->
 <div class="page" id="page-cameras">
   <div class="card"><div class="card-head"><span class="card-title">ВИДЕОНАБЛЮДЕНИЕ</span><span class="cam-rec">REC</span></div><div class="cam-main"><div class="cam-main-ph" id="cm-ph"><span class="ci">📷</span><span>Камера не подключена</span></div><img id="cm-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover"><div style="position:absolute;top:7px;left:7px;right:7px;display:flex;justify-content:space-between;pointer-events:none"><span class="cam-tag" id="cm-label">CAM 1</span><span class="cam-tag" id="cm-time">--:--:--</span></div></div><div class="cam-grid" id="cam-thumbs"></div></div>
-  <div class="card"><div class="card-head"><span class="card-title">НАСТРОЙКА КАМЕР</span></div><div id="cam-settings" style="display:flex;flex-direction:column;gap:10px"></div></div>
-  <div class="card"><div class="card-head"><span class="card-title">УПРАВЛЕНИЕ ЗАПИСЬЮ</span></div><div class="g2"><button class="btn btn-r" onclick="showToast('🔴 Запись начата')">⏺ Запись</button><button class="btn btn-ghost" onclick="showToast('📸 Снимок сохранён')">📸 Снимок</button></div></div>
 </div>
 
-<!-- SETTINGS -->
 <div class="page" id="page-settings">
+  <!-- ESP32 SETTINGS -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">📡 ESP32 ПОДКЛЮЧЕНИЕ</span></div>
+    <div class="set-row">
+      <div><div class="set-name">IP адрес ESP32</div><div class="set-sub" id="esp-ip-display">Не задан</div></div>
+      <button class="btn btn-g" style="padding:6px 12px;font-size:11px" onclick="openEspModal()">Изменить</button>
+    </div>
+    <div class="set-row">
+      <div><div class="set-name">Интервал опроса</div><div class="set-sub">Как часто читать датчик</div></div>
+      <div class="num-ctrl">
+        <button onclick="adj('pollInterval',-1)">−</button>
+        <span class="num-val" id="sv-pollInterval">3</span>с
+        <button onclick="adj('pollInterval',+1)">+</button>
+      </div>
+    </div>
+    <div style="margin-top:8px;padding:10px;background:var(--s2);border-radius:8px;border:1px solid var(--b1)">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">📋 КОД ДЛЯ ESP32 (скопируйте в Arduino IDE):</div>
+      <div style="font-size:9px;color:var(--dim);line-height:1.6;font-family:var(--mono)" id="esp-code-hint"></div>
+    </div>
+  </div>
+
   <div class="card"><div class="card-head"><span class="card-title">🌱 РЕЖИМЫ КУЛЬТУР</span></div><div style="font-size:10px;color:var(--muted);margin-bottom:8px">Выберите культуру — все пороги установятся автоматически</div><div class="crop-preset-grid" id="crop-preset-grid"></div></div>
-  <div class="card"><div class="card-head"><span class="card-title">⚙️ КЛИМАТ — ПОРОГИ</span></div><div class="set-section">
+  <div class="card"><div class="card-head"><span class="card-title">⚙️ КЛИМАТ — ПОРОГИ</span></div>
       <div class="set-row"><div><div class="set-name">🔥 Обогрев ВКЛ</div></div><div class="num-ctrl"><button onclick="adj('heaterOn',-1)">−</button><span class="num-val" id="sv-heaterOn">18</span>°C<button onclick="adj('heaterOn',+1)">+</button></div></div>
       <div class="set-row"><div><div class="set-name">🔥 Обогрев ВЫКЛ</div></div><div class="num-ctrl"><button onclick="adj('heaterOff',-1)">−</button><span class="num-val" id="sv-heaterOff">24</span>°C<button onclick="adj('heaterOff',+1)">+</button></div></div>
       <div class="set-row"><div><div class="set-name">💨 Вентилятор ВКЛ</div></div><div class="num-ctrl"><button onclick="adj('fanOn',-1)">−</button><span class="num-val" id="sv-fanOn">28</span>°C<button onclick="adj('fanOn',+1)">+</button></div></div>
       <div class="set-row"><div><div class="set-name">💧 Увлажнитель ВКЛ</div></div><div class="num-ctrl"><button onclick="adj('humidOn',-1)">−</button><span class="num-val" id="sv-humidOn">65</span>%<button onclick="adj('humidOn',+1)">+</button></div></div>
       <div class="set-row"><div><div class="set-name">💧 Увлажнитель ВЫКЛ</div></div><div class="num-ctrl"><button onclick="adj('humidOff',-1)">−</button><span class="num-val" id="sv-humidOff">80</span>%<button onclick="adj('humidOff',+1)">+</button></div></div>
-      <div class="set-row"><div><div class="set-name">🌿 Алерт CO₂</div></div><div class="num-ctrl"><button onclick="adj('co2Alert',-50)">−</button><span class="num-val" id="sv-co2Alert">1500</span><button onclick="adj('co2Alert',+50)">+</button></div></div>
-  </div></div>
-  <div class="card"><div class="card-head"><span class="card-title">⚙️ ПОЛИВ — ПОРОГИ</span></div>
-    <div class="set-row"><div><div class="set-name">💧 Авто-полив при</div></div><div class="num-ctrl"><button onclick="adj('soilMin',-5)">−</button><span class="num-val" id="sv-soilMin">55</span>%<button onclick="adj('soilMin',+5)">+</button></div></div>
-    <div class="set-row"><div><div class="set-name">⏱ Длительность</div></div><div class="num-ctrl"><button onclick="adj('waterSec',-5)">−</button><span class="num-val" id="sv-waterSec">45</span>с<button onclick="adj('waterSec',+5)">+</button></div></div>
   </div>
-  <div class="card"><div class="card-head"><span class="card-title">⚙️ УВЕДОМЛЕНИЯ</span></div>
-    <div class="crow"><div class="crow-lbl"><div class="crow-name">🔴 Аварийные</div></div><label class="tog"><input type="checkbox" id="tog-nalert" checked onchange="S.cfg.notifyAlarms=this.checked"><span class="tog-track"></span></label></div>
-    <div class="crow"><div class="crow-lbl"><div class="crow-name">🟡 Предупреждения</div></div><label class="tog"><input type="checkbox" id="tog-nwarn" checked onchange="S.cfg.notifyWarns=this.checked"><span class="tog-track"></span></label></div>
-    <div class="crow"><div class="crow-lbl"><div class="crow-name">📳 Вибрация</div></div><label class="tog"><input type="checkbox" id="tog-nvib" checked onchange="S.cfg.vibrate=this.checked"><span class="tog-track"></span></label></div>
-  </div>
-  <div class="card"><div class="card-head"><span class="card-title">⚙️ СИСТЕМА</span></div><div class="g2"><button class="btn btn-r" onclick="clearAlarms()">🗑 Очист. аларм</button><button class="btn btn-ghost" onclick="resetSettings()">↺ Сброс настр.</button></div><div style="margin-top:10px;font-size:10px;color:var(--muted)">Умная Теплица v3 · Кишинёв, Молдова · Погода: OpenWeatherMap</div></div>
+  <div class="card"><div class="card-head"><span class="card-title">⚙️ СИСТЕМА</span></div><div class="g2"><button class="btn btn-r" onclick="clearAlarms()">🗑 Очист. аларм</button><button class="btn btn-ghost" onclick="resetSettings()">↺ Сброс настр.</button></div><div style="margin-top:10px;font-size:10px;color:var(--muted)">Умная Теплица v4 · Кишинёв, Молдова · DHT22 + ESP32</div></div>
 </div>
 
 </div><!-- /wrap -->
 
-<!-- NAV -->
 <nav class="nav">
   <button class="nb active" id="nav-dashboard" onclick="switchTab('dashboard')"><span class="ic">📊</span>Главная</button>
   <button class="nb" id="nav-sensors" onclick="switchTab('sensors')"><span class="ic">🌡</span>Датчики</button>
@@ -493,366 +521,410 @@ hr.div{border:none;border-top:1px solid var(--b1);margin:10px 0}
 // ====================================================================
 //  UTILITIES
 // ====================================================================
-const rnd = (a, b) => a + Math.random() * (b - a);
-const rndn = (v, d) => Math.round(v * Math.pow(10, d)) / Math.pow(10, d);
-const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const pad = (n) => String(n).padStart(2, '0');
-const el = (id) => document.getElementById(id);
-const setH = (id, h) => { const e = el(id); if (e) e.innerHTML = h; };
-const setT = (id, t) => { const e = el(id); if (e) e.textContent = t; };
-const setW = (id, p) => { const e = el(id); if (e) e.style.width = Math.round(p) + '%'; };
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const rndn=(v,d)=>Math.round(v*Math.pow(10,d))/Math.pow(10,d);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const pad=(n)=>String(n).padStart(2,'0');
+const el=(id)=>document.getElementById(id);
+const setH=(id,h)=>{const e=el(id);if(e)e.innerHTML=h;};
+const setT=(id,t)=>{const e=el(id);if(e)e.textContent=t;};
+const setW=(id,p)=>{const e=el(id);if(e)e.style.width=Math.round(p)+'%';};
 
 // ====================================================================
-//  EVENT EMITTER
+//  ESP32 INTEGRATION
 // ====================================================================
-class EventEmitter {
-    constructor() { this._listeners = {}; }
-    on(event, fn) { (this._listeners[event] = this._listeners[event] || []).push(fn); }
-    emit(event, ...args) { (this._listeners[event] || []).forEach(fn => fn(...args)); }
+let espIp = localStorage.getItem('esp32_ip') || '';
+let espConnected = false;
+let espFetchInterval = null;
+let espPollSeconds = 3;
+let espFailCount = 0;
+const ESP_MAX_FAILS = 3;
+
+function openEspModal() {
+  el('esp-ip-input').value = espIp;
+  el('modal-esp').classList.remove('hidden');
+}
+
+function closeEspModal(skipConnect) {
+  el('modal-esp').classList.add('hidden');
+  if (skipConnect) {
+    setEspStatus('sim');
+    state.addLog('📊 Режим симуляции (ESP32 не подключён)', 'warn');
+  }
+}
+
+function saveEspIp() {
+  const ip = el('esp-ip-input').value.trim();
+  if (!ip) { showToast('⚠ Введите IP адрес'); return; }
+  espIp = ip;
+  localStorage.setItem('esp32_ip', ip);
+  el('modal-esp').classList.add('hidden');
+  updateEspCodeHint();
+  startEspPolling();
+  showToast('📡 Подключение к ESP32...');
+}
+
+function setEspStatus(status, extra) {
+  const bar = el('esp-bar'), label = el('esp-label'), sub = el('esp-sub');
+  const src1 = el('temp-src'), src2 = el('hum-src');
+  const sensorBadge = el('sensor-src-badge');
+  bar.className = 'esp-bar ' + (status === 'connected' ? 'connected' : status === 'connecting' ? 'connecting' : 'disconnected');
+  if (status === 'connected') {
+    label.textContent = '📡 ESP32 подключён — ' + espIp;
+    sub.textContent = extra || 'DHT22 онлайн · данные в реальном времени';
+    if (src1) src1.style.display = 'inline-block';
+    if (src2) src2.style.display = 'inline-block';
+    if (sensorBadge) { sensorBadge.textContent = 'LIVE · ESP32'; sensorBadge.className = 'badge b-ok'; }
+    espConnected = true; espFailCount = 0;
+  } else if (status === 'connecting') {
+    label.textContent = '⏳ Подключение...';
+    sub.textContent = espIp;
+    espConnected = false;
+  } else if (status === 'error') {
+    label.textContent = '❌ ESP32 недоступен';
+    sub.textContent = extra || 'Проверьте WiFi и IP адрес';
+    if (src1) src1.style.display = 'none';
+    if (src2) src2.style.display = 'none';
+    if (sensorBadge) { sensorBadge.textContent = 'SIM'; sensorBadge.className = 'badge b-warn'; }
+    espConnected = false;
+  } else {
+    label.textContent = 'ESP32 не подключён';
+    sub.textContent = 'Нажмите "Настроить"';
+    if (src1) src1.style.display = 'none';
+    if (src2) src2.style.display = 'none';
+    if (sensorBadge) { sensorBadge.textContent = 'SIM'; sensorBadge.className = 'badge b-dim'; }
+    espConnected = false;
+  }
+}
+
+async function fetchEspData() {
+  if (!espIp) return;
+  try {
+    const res = await fetch(`http://${espIp}/data`, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    // Применяем реальные данные с датчика
+    if (typeof data.temp === 'number' && !isNaN(data.temp)) {
+      state.tempAir = Math.round(data.temp * 10) / 10;
+    }
+    if (typeof data.humidity === 'number' && !isNaN(data.humidity)) {
+      state.humidity = Math.round(data.humidity);
+    }
+    // Дополнительные данные если есть
+    if (typeof data.pressure === 'number') state.pressure = Math.round(data.pressure);
+    if (typeof data.soilTemp === 'number') state.tempSoil = data.soilTemp;
+    if (typeof data.co2 === 'number') state.co2 = Math.round(data.co2);
+    if (typeof data.lux === 'number') state.lux = Math.round(data.lux);
+
+    const now = new Date();
+    const ts = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+    setEspStatus('connected', `${ts} · 🌡${state.tempAir}°C 💧${state.humidity}%`);
+
+    if (espFailCount > 0) {
+      state.addLog(`📡 ESP32 восстановлен: ${state.tempAir}°C, ${state.humidity}%`, 'esp');
+    }
+    espFailCount = 0;
+
+  } catch(e) {
+    espFailCount++;
+    if (espFailCount >= ESP_MAX_FAILS) {
+      setEspStatus('error', `Нет ответа · ${espFailCount} ошибок`);
+      if (espFailCount === ESP_MAX_FAILS) {
+        state.addLog(`❌ ESP32 не отвечает (${espIp})`, 'err');
+      }
+    }
+  }
+}
+
+function startEspPolling() {
+  if (espFetchInterval) clearInterval(espFetchInterval);
+  setEspStatus('connecting');
+  fetchEspData(); // Сразу первый запрос
+  espFetchInterval = setInterval(fetchEspData, espPollSeconds * 1000);
+  setT('esp-ip-display', espIp);
+  updateEspCodeHint();
+}
+
+function updateEspCodeHint() {
+  const hint = el('esp-code-hint');
+  if (!hint) return;
+  hint.innerHTML = `
+#include &lt;WiFi.h&gt;<br>
+#include &lt;WebServer.h&gt;<br>
+#include &lt;DHT.h&gt;<br><br>
+const char* ssid = "ВАШ_WIFI";<br>
+const char* password = "ВАШ_ПАРОЛЬ";<br>
+#define DHTPIN 15<br>
+#define DHTTYPE DHT22<br>
+DHT dht(DHTPIN, DHTTYPE);<br>
+WebServer server(80);<br><br>
+void handleData() {<br>
+&nbsp;&nbsp;float t = dht.readTemperature();<br>
+&nbsp;&nbsp;float h = dht.readHumidity();<br>
+&nbsp;&nbsp;String json = "{\\"temp\\":" + String(t) +<br>
+&nbsp;&nbsp;&nbsp;&nbsp;",\\"humidity\\":" + String(h) + "}";<br>
+&nbsp;&nbsp;server.sendHeader("Access-Control-Allow-Origin","*");<br>
+&nbsp;&nbsp;server.send(200, "application/json", json);<br>
+}<br><br>
+void setup() {<br>
+&nbsp;&nbsp;Serial.begin(115200);<br>
+&nbsp;&nbsp;dht.begin();<br>
+&nbsp;&nbsp;WiFi.begin(ssid, password);<br>
+&nbsp;&nbsp;while(WiFi.status()!=WL_CONNECTED) delay(500);<br>
+&nbsp;&nbsp;Serial.println(WiFi.localIP());<br>
+&nbsp;&nbsp;server.on("/data", handleData);<br>
+&nbsp;&nbsp;server.begin();<br>
+}<br><br>
+void loop() { server.handleClient(); }
+  `.trim();
 }
 
 // ====================================================================
-//  КОНСТАНТЫ
+//  CONSTANTS & STATE
 // ====================================================================
 const REGIONS = {
-    chisinau:  {name:'Кишинёв, Молдова', lat:47.01, lon:28.86},
-    murmansk:  {name:'Мурманск',         lat:68.97, lon:33.07},
-    spb:       {name:'Санкт-Петербург',  lat:59.95, lon:30.32},
-    moscow:    {name:'Москва',           lat:55.75, lon:37.62},
-    kazan:     {name:'Казань',           lat:55.79, lon:49.12},
-    ekb:       {name:'Екатеринбург',     lat:56.83, lon:60.60},
-    novosib:   {name:'Новосибирск',      lat:55.00, lon:82.92},
-    krasnodar: {name:'Краснодар',        lat:45.03, lon:38.97},
-    sochi:     {name:'Сочи',             lat:43.58, lon:39.72},
-    vladivostok:{name:'Владивосток',     lat:43.12, lon:131.90},
-    minsk:     {name:'Минск',            lat:53.90, lon:27.57},
-    kyiv:      {name:'Киев',             lat:50.45, lon:30.52},
-    almaty:    {name:'Алматы',           lat:43.26, lon:76.95},
-    tashkent:  {name:'Ташкент',          lat:41.30, lon:69.27}
+  chisinau:{name:'Кишинёв',lat:47.01,lon:28.86},
+  moscow:{name:'Москва',lat:55.75,lon:37.62},
+  spb:{name:'Санкт-Петербург',lat:59.95,lon:30.32},
+  krasnodar:{name:'Краснодар',lat:45.03,lon:38.97}
 };
-
 const CROPS = {
-    tomato:{name:'Томаты',min:14,max:16}, cucumber:{name:'Огурцы',min:12,max:14},
-    pepper:{name:'Перец',min:14,max:16}, lettuce:{name:'Салат',min:12,max:14},
-    strawberry:{name:'Клубника',min:8,max:12}, greens:{name:'Зелень',min:12,max:16},
-    eggplant:{name:'Баклажаны',min:13,max:15}, radish:{name:'Редис',min:10,max:13},
-    onion:{name:'Лук зелёный',min:10,max:14}, microgreens:{name:'Микрозелень',min:12,max:16},
-    basil:{name:'Базилик',min:14,max:17}
+  tomato:{name:'Томаты',min:14,max:16}, cucumber:{name:'Огурцы',min:12,max:14},
+  pepper:{name:'Перец',min:14,max:16}, lettuce:{name:'Салат',min:12,max:14}
 };
-
 const CROP_PRESETS = {
-    tomato:    { name:'🍅 Томаты',       icon:'🍅', heaterOn:18, heaterOff:24, fanOn:28, fanOff:25, humidOn:65, humidOff:80, co2Alert:1500, soilMin:55, waterSec:45, lightHours:15, desc:'Теплолюбивая культура, высокая влажность' },
-    cucumber:  { name:'🥒 Огурцы',       icon:'🥒', heaterOn:20, heaterOff:26, fanOn:27, fanOff:24, humidOn:75, humidOff:90, co2Alert:1200, soilMin:60, waterSec:60, lightHours:13, desc:'Высокая влажность, обильный полив' },
-    pepper:    { name:'🌶 Перцы',        icon:'🌶', heaterOn:19, heaterOff:25, fanOn:29, fanOff:26, humidOn:60, humidOff:75, co2Alert:1400, soilMin:50, waterSec:40, lightHours:15, desc:'Как томаты, но чуть суше' },
-    eggplant:  { name:'🍆 Баклажаны',    icon:'🍆', heaterOn:20, heaterOff:27, fanOn:30, fanOff:26, humidOn:65, humidOff:80, co2Alert:1300, soilMin:55, waterSec:50, lightHours:14, desc:'Теплолюбивые, умеренный полив' },
-    strawberry:{ name:'🍓 Клубника',     icon:'🍓', heaterOn:14, heaterOff:22, fanOn:26, fanOff:22, humidOn:70, humidOff:85, co2Alert:1000, soilMin:45, waterSec:35, lightHours:10, desc:'Прохладнее, капельный полив' },
-    lettuce:   { name:'🥬 Салат',        icon:'🥬', heaterOn:14, heaterOff:21, fanOn:25, fanOff:21, humidOn:60, humidOff:75, co2Alert:1000, soilMin:50, waterSec:30, lightHours:13, desc:'Прохладная культура, короткий день' },
-    radish:    { name:'🟢 Редис',        icon:'🟢', heaterOn:13, heaterOff:20, fanOn:24, fanOff:20, humidOn:65, humidOff:80, co2Alert:900,  soilMin:55, waterSec:40, lightHours:11, desc:'Холодостойкий, быстрый цикл' },
-    onion:     { name:'🧅 Лук зелёный',  icon:'🧅', heaterOn:14, heaterOff:22, fanOn:26, fanOff:22, humidOn:60, humidOff:75, co2Alert:1000, soilMin:50, waterSec:35, lightHours:12, desc:'Неприхотлив, умеренный полив' },
-    basil:     { name:'🌿 Базилик',      icon:'🌿', heaterOn:20, heaterOff:27, fanOn:29, fanOff:25, humidOn:65, humidOff:80, co2Alert:1400, soilMin:55, waterSec:45, lightHours:15, desc:'Тепло и много света' },
-    microgreens:{name:'🌱 Микрозелень',  icon:'🌱', heaterOn:18, heaterOff:24, fanOn:26, fanOff:22, humidOn:70, humidOff:85, co2Alert:1100, soilMin:60, waterSec:20, lightHours:14, desc:'Высокая влажность, частый полив' },
-    greens:    { name:'🥗 Зелень сборная',icon:'🥗', heaterOn:16, heaterOff:23, fanOn:27, fanOff:23, humidOn:65, humidOff:80, co2Alert:1200, soilMin:50, waterSec:40, lightHours:14, desc:'Универсальный режим для зелени' },
+  tomato:{name:'🍅 Томаты',icon:'🍅',heaterOn:18,heaterOff:24,fanOn:28,fanOff:25,humidOn:65,humidOff:80,co2Alert:1500,soilMin:55,waterSec:45,desc:'Теплолюбивая, высокая влажность'},
+  cucumber:{name:'🥒 Огурцы',icon:'🥒',heaterOn:20,heaterOff:26,fanOn:27,fanOff:24,humidOn:75,humidOff:90,co2Alert:1200,soilMin:60,waterSec:60,desc:'Высокая влажность, обильный полив'},
+  pepper:{name:'🌶 Перцы',icon:'🌶',heaterOn:19,heaterOff:25,fanOn:29,fanOff:26,humidOn:60,humidOff:75,co2Alert:1400,soilMin:50,waterSec:40,desc:'Как томаты, но чуть суше'},
+  eggplant:{name:'🍆 Баклажаны',icon:'🍆',heaterOn:20,heaterOff:27,fanOn:30,fanOff:26,humidOn:65,humidOff:80,co2Alert:1300,soilMin:55,waterSec:50,desc:'Теплолюбивые, умеренный полив'},
+  strawberry:{name:'🍓 Клубника',icon:'🍓',heaterOn:14,heaterOff:22,fanOn:26,fanOff:22,humidOn:70,humidOff:85,co2Alert:1000,soilMin:45,waterSec:35,desc:'Прохладнее, капельный полив'},
+  lettuce:{name:'🥬 Салат',icon:'🥬',heaterOn:14,heaterOff:21,fanOn:25,fanOff:21,humidOn:60,humidOff:75,co2Alert:1000,soilMin:50,waterSec:30,desc:'Прохладная, короткий день'},
+  radish:{name:'🟢 Редис',icon:'🟢',heaterOn:13,heaterOff:20,fanOn:24,fanOff:20,humidOn:65,humidOff:80,co2Alert:900,soilMin:55,waterSec:40,desc:'Холодостойкий, быстрый цикл'},
+  onion:{name:'🧅 Лук зелёный',icon:'🧅',heaterOn:14,heaterOff:22,fanOn:26,fanOff:22,humidOn:60,humidOff:75,co2Alert:1000,soilMin:50,waterSec:35,desc:'Неприхотлив'},
+  basil:{name:'🌿 Базилик',icon:'🌿',heaterOn:20,heaterOff:27,fanOn:29,fanOff:25,humidOn:65,humidOff:80,co2Alert:1400,soilMin:55,waterSec:45,desc:'Тепло и много света'},
+  microgreens:{name:'🌱 Микрозелень',icon:'🌱',heaterOn:18,heaterOff:24,fanOn:26,fanOff:22,humidOn:70,humidOff:85,co2Alert:1100,soilMin:60,waterSec:20,desc:'Высокая влажность, частый полив'},
+  greens:{name:'🥗 Зелень сборная',icon:'🥗',heaterOn:16,heaterOff:23,fanOn:27,fanOff:23,humidOn:65,humidOff:80,co2Alert:1200,soilMin:50,waterSec:40,desc:'Универсальный режим'}
+};
+const RU_MONTHS=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const RU_DAYS=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const WEATHER_API_KEY='ecff0695fb86204bc7154641eb257cad';
+
+// ====================================================================
+//  STATE
+// ====================================================================
+const state = {
+  tempAir:24.5, tempSoil:19.2, humidity:65, co2:680, lux:45000, pressure:1013,
+  soil:[62,58,71,45], waterLvl:78, condensate:45,
+  heater:false, fan:false, humidifier:false,
+  pumps:[false,false,false,false], pumpTimers:[null,null,null,null],
+  redLed:80, blueLed:40,
+  hist:{temp:[],hum:[],co2:[],lux:[]},
+  alarms:[], alarmIdSet:{},
+  cameras:[{name:'CAM 1',label:'Вход',url:''},{name:'CAM 2',label:'Грядки',url:''},{name:'CAM 3',label:'Клапаны',url:''},{name:'CAM 4',label:'Бак',url:''}],
+  selCam:0,
+  cfg:{heaterOn:18,heaterOff:24,fanOn:28,fanOff:25,humidOn:65,humidOff:80,co2Alert:1500,soilMin:55,waterSec:45,season:'summer',autoMode:true,region:'chisinau',crop:'tomato',pollInterval:3,notifyAlarms:true,notifyWarns:true,vibrate:true},
+  logs:[],
+  simulate() {
+    // Симулируем только если ESP32 не подключён (или параметры которых нет в ESP32)
+    if (!espConnected) {
+      this.tempAir = rndn(clamp(this.tempAir+rnd(-0.3,0.3),5,45),1);
+      this.humidity = clamp(Math.round(this.humidity+rnd(-1.5,1.5)),20,100);
+    }
+    // Эти всегда симулируем (нет датчика)
+    this.co2 = clamp(Math.round(this.co2+rnd(-20,20)),300,2500);
+    this.lux = clamp(Math.round(this.lux+rnd(-1000,1000)),0,100000);
+    this.soil[0] = clamp(Math.round(this.soil[0]+rnd(-1,1)),5,100);
+    this.soil[3] = clamp(Math.round(this.soil[3]+rnd(-1.5,1.5)),5,100);
+    const push=(a,v)=>{a.push(v);if(a.length>30)a.shift();};
+    push(this.hist.temp,this.tempAir); push(this.hist.hum,this.humidity);
+    push(this.hist.co2,this.co2); push(this.hist.lux,this.lux);
+  },
+  addLog(text,type='ok') {
+    const n=new Date(),t=pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds());
+    this.logs.unshift({t,text,type}); if(this.logs.length>40)this.logs.pop();
+  },
+  initHistory() { for(let i=0;i<30;i++)this.simulate(); }
 };
 
-const RU_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-const RU_DAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-
-const DEFAULT_CFG = {
-    heaterOn: 18, heaterOff: 24, fanOn: 28, fanOff: 25,
-    humidOn: 65, humidOff: 80, co2Alert: 1500,
-    soilMin: 55, waterSec: 45,
-    season: 'summer', autoMode: true,
-    region: 'chisinau', crop: 'tomato',
-    notifyAlarms: true, notifyWarns: true, vibrate: true
-};
-
-// OpenWeatherMap API ключ
-const WEATHER_API_KEY = 'ecff0695fb86204bc7154641eb257cad';
-
 // ====================================================================
-//  LIGHTING CALCULATOR
+//  ALARMS
 // ====================================================================
-class LightingCalculator {
-    static calcDayLength(lat, date = new Date()) {
-        const doy = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 86400000);
-        const P = Math.asin(0.39795 * Math.cos(0.2163108 + 2 * Math.atan(0.9671396 * Math.tan(0.00860 * (doy - 186)))));
-        const arg = (Math.sin(0.8333 * Math.PI / 180) + Math.sin(lat * Math.PI / 180) * Math.sin(P)) / (Math.cos(lat * Math.PI / 180) * Math.cos(P));
-        const D = 24 - (24 / Math.PI) * Math.acos(Math.max(-1, Math.min(1, arg)));
-        return Math.max(0, Math.min(24, Math.round(D * 10) / 10));
-    }
-    static calcSunTimes(lat, date = new Date()) {
-        const dl = this.calcDayLength(lat, date), noon = 13, half = dl / 2;
-        return { rise: noon - half, set: noon + half, dl };
-    }
-    static hoursToHM(h) {
-        let hh = Math.floor(h), mm = Math.round((h - hh) * 60);
-        if (mm === 60) { hh++; mm = 0; }
-        return pad(hh) + ':' + pad(mm);
-    }
+function checkAlarms() {
+  const s=state,c=s.cfg;
+  addAlarm('temp_hi',s.tempAir>38,`🔴 Перегрев: ${s.tempAir}°C!`,'crit');
+  addAlarm('temp_lo',s.tempAir<5,`🔴 Критически низкая темп.: ${s.tempAir}°C`,'crit');
+  addAlarm('water_crit',s.waterLvl<8,`🔴 Бак полива пуст! ${s.waterLvl}%`,'crit');
+  addAlarm('co2',s.co2>c.co2Alert,`🟡 CO₂ высокий: ${s.co2} ppm`,'warn');
+  addAlarm('water_low',s.waterLvl<20&&s.waterLvl>=8,`🟡 Бак полива низкий: ${s.waterLvl}%`,'warn');
+  addAlarm('humid_lo',s.humidity<30,`🟡 Критически сухо: ${s.humidity}%`,'warn');
+  renderAlarmUI();
 }
-
-// ====================================================================
-//  WEATHER SERVICE — реальная погода OpenWeatherMap
-// ====================================================================
-class WeatherService {
-    constructor(state, bus) { this.state = state; this.bus = bus; this.outdoorData = null; }
-    start() { this._fetch(); setInterval(() => this._fetch(), 10 * 60 * 1000); }
-    async _fetch() {
-        const reg = REGIONS[this.state.cfg.region] || REGIONS['chisinau'];
-        try {
-            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${reg.lat}&lon=${reg.lon}&appid=${WEATHER_API_KEY}&units=metric&lang=ru`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const d = await res.json();
-            this.outdoorData = {
-                temp: Math.round(d.main.temp), feels_like: Math.round(d.main.feels_like),
-                humidity: d.main.humidity, pressure: d.main.pressure,
-                wind: Math.round(d.wind.speed * 10) / 10,
-                description: d.weather[0].description,
-                icon: this._owmIcon(d.weather[0].id),
-                city: d.name, updated: new Date()
-            };
-            this.state.addLog(`🌤 Погода: ${this.outdoorData.icon} ${this.outdoorData.temp}°C, ${this.outdoorData.description}`, 'ok');
-            this.bus.emit('weather:updated', this.outdoorData);
-        } catch (e) {
-            console.error('[Weather] Ошибка:', e);
-            this.state.addLog('⚠ Ошибка получения погоды', 'warn');
-            this.outdoorData = null;
-            this.bus.emit('weather:updated', null);
-        }
-    }
-    _owmIcon(id) {
-        if (id >= 200 && id < 300) return '⛈️'; if (id >= 300 && id < 400) return '🌦️';
-        if (id >= 500 && id < 600) return '🌧️'; if (id >= 600 && id < 700) return '🌨️';
-        if (id >= 700 && id < 800) return '🌫️'; if (id === 800) return '☀️';
-        if (id === 801) return '🌤️'; if (id === 802) return '⛅'; return '☁️';
-    }
+function addAlarm(id,cond,text,sev) {
+  if(cond&&!state.alarmIdSet[id]){state.alarmIdSet[id]=true;state.alarms.unshift({id,text,sev,ts:new Date()});state.addLog('🚨 '+text,'err');}
+  else if(!cond)clearAlarmById(id);
 }
-
-// ====================================================================
-//  STATE MANAGER
-// ====================================================================
-class StateManager {
-    constructor() {
-        this.tempAir = 24.5; this.tempSoil = 19.2; this.humidity = 65; this.co2 = 680;
-        this.lux = 45000; this.pressure = 1013;
-        this.soil = [62, 58, 71, 45]; this.waterLvl = 78; this.condensate = 45;
-        this.heater = false; this.fan = false; this.humidifier = false;
-        this.pumps = [false, false, false, false]; this.pumpTimers = [null, null, null, null];
-        this.redLed = 80; this.blueLed = 40;
-        this.hist = { temp:[], hum:[], co2:[], lux:[] };
-        this.alarms = []; this.alarmIdSet = {};
-        this.cameras = [
-            {name:'CAM 1', label:'Вход', url:''}, {name:'CAM 2', label:'Грядки', url:''},
-            {name:'CAM 3', label:'Клапаны', url:''}, {name:'CAM 4', label:'Бак', url:''}
-        ];
-        this.selCam = 0; this.cfg = {...DEFAULT_CFG}; this.logs = [];
-    }
-    simulate() {
-        this.tempAir  = rndn(clamp(this.tempAir  + rnd(-0.3, 0.3), 5, 45), 1);
-        this.humidity = clamp(Math.round(this.humidity + rnd(-1.5, 1.5)), 20, 100);
-        this.co2      = clamp(Math.round(this.co2 + rnd(-20, 20)), 300, 2500);
-        this.lux      = clamp(Math.round(this.lux + rnd(-1000, 1000)), 0, 100000);
-        this.soil[0]  = clamp(Math.round(this.soil[0] + rnd(-1, 1)), 5, 100);
-        this.soil[3]  = clamp(Math.round(this.soil[3] + rnd(-1.5, 1.5)), 5, 100);
-        const push = (a, v) => { a.push(v); if (a.length > 30) a.shift(); };
-        push(this.hist.temp, this.tempAir); push(this.hist.hum, this.humidity);
-        push(this.hist.co2, this.co2); push(this.hist.lux, this.lux);
-    }
-    addLog(text, type = 'ok') {
-        const n = new Date(), t = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
-        this.logs.unshift({t, text, type}); if (this.logs.length > 40) this.logs.pop();
-    }
-    initHistory() { for (let i = 0; i < 30; i++) this.simulate(); }
-}
-
-// ====================================================================
-//  ALARM MANAGER
-// ====================================================================
-class AlarmManager {
-    constructor(state, bus) { this.state = state; this.bus = bus; }
-    add(id, text, sev) {
-        if (this.state.alarmIdSet[id]) return;
-        this.state.alarmIdSet[id] = true;
-        this.state.alarms.unshift({id, text, sev, ts: new Date()});
-        this.state.addLog('🚨 ' + text, 'err');
-        if (this.state.cfg.vibrate && 'vibrate' in navigator) navigator.vibrate([200, 100, 200]);
-        this.bus.emit('alarms:changed');
-    }
-    clear(id) { if (!this.state.alarmIdSet[id]) return; this.state.alarmIdSet[id] = false; this.state.alarms = this.state.alarms.filter(a => a.id !== id); this.bus.emit('alarms:changed'); }
-    checkAll() {
-        const s = this.state, c = s.cfg;
-        if (s.tempAir > 38) this.add('temp_hi', `🔴 Перегрев: ${s.tempAir}°C!`, 'crit'); else this.clear('temp_hi');
-        if (s.tempAir < 5) this.add('temp_lo', `🔴 Критически низкая темп.: ${s.tempAir}°C`, 'crit'); else this.clear('temp_lo');
-        if (s.waterLvl < 8) this.add('water_crit', `🔴 Бак полива пуст! ${s.waterLvl}%`, 'crit'); else this.clear('water_crit');
-        if (s.co2 > c.co2Alert && c.notifyWarns) this.add('co2', `🟡 CO₂ высокий: ${s.co2} ppm`, 'warn'); else this.clear('co2');
-        if (s.waterLvl < 20 && s.waterLvl >= 8 && c.notifyWarns) this.add('water_low', `🟡 Бак полива низкий: ${s.waterLvl}%`, 'warn'); else this.clear('water_low');
-        if (s.humidity < 30 && c.notifyWarns) this.add('humid_lo', `🟡 Критически сухо: ${s.humidity}%`, 'warn'); else this.clear('humid_lo');
-        if (s.heater && s.tempAir < c.heaterOn - 10 && c.notifyAlarms) this.add('heater_fail', `🔴 Отказ обогревателя! ${s.tempAir}°C`, 'crit'); else this.clear('heater_fail');
-        if (s.humidifier && s.humidity < 25 && c.notifyAlarms) this.add('humid_fail', `🔴 Увлажнитель не справляется! ${s.humidity}%`, 'crit'); else this.clear('humid_fail');
-        s.pumps.forEach((pumpOn) => { if (pumpOn && s.waterLvl < 5) this.add('pump_dry', '🔴 Насос вхолостую!', 'crit'); });
-        if (s.waterLvl >= 5) this.clear('pump_dry');
-    }
-    dismissAll() { this.state.alarms = []; this.state.alarmIdSet = {}; this.bus.emit('alarms:changed'); }
+function clearAlarmById(id){if(!state.alarmIdSet[id])return;state.alarmIdSet[id]=false;state.alarms=state.alarms.filter(a=>a.id!==id);}
+function clearAlarms(){state.alarms=[];state.alarmIdSet={};renderAlarmUI();}
+function dismissAllAlarms(){clearAlarms();}
+function renderAlarmUI(){
+  const active=state.alarms,panel=el('alarm-list');if(!panel)return;
+  if(active.length===0)panel.innerHTML='<div style="padding:12px 14px;font-size:12px;color:var(--muted)">Нет активных аварий ✓</div>';
+  else panel.innerHTML=active.map(a=>{const cls={crit:'alarm-sev-crit',warn:'alarm-sev-warn'}[a.sev]||'',ts=pad(a.ts.getHours())+':'+pad(a.ts.getMinutes());return`<div class="alarm-item"><span class="${cls}">${a.text}</span><button class="alarm-dismiss" onclick="clearAlarmById('${a.id}');renderAlarmUI()">✕</button></div>`;}).join('');
+  const cnt=active.length,badge=el('alarm-count');if(badge){badge.textContent=cnt;badge.style.display=cnt>0?'flex':'none';}
 }
 
 // ====================================================================
 //  AUTO CONTROLLER
 // ====================================================================
-let manualOverride = {};
-class AutoController {
-    constructor(state, bus) { this.state = state; this.bus = bus; this.autoLogThrottle = {}; this.manualOverride = manualOverride; }
-    run() {
-        if (!this.state.cfg.autoMode) return;
-        const s = this.state, c = s.cfg;
-        if (s.tempAir < c.heaterOn && !s.heater) { s.heater = true; this._throttledLog('h_on', `🤖 Авто: Обогрев ВКЛ (${s.tempAir}°C < ${c.heaterOn}°C)`, 60000); }
-        else if (s.tempAir > c.heaterOff && s.heater) { s.heater = false; s.addLog(`🤖 Авто: Обогрев ВЫКЛ (${s.tempAir}°C > ${c.heaterOff}°C)`, 'auto'); }
-        if (s.tempAir > c.fanOn && !s.fan) { s.fan = true; s.addLog(`🤖 Авто: Вентилятор ВКЛ (${s.tempAir}°C)`, 'auto'); }
-        else if (s.tempAir < c.fanOff && s.fan && !this.manualOverride.fan) { s.fan = false; s.addLog('🤖 Авто: Вентилятор ВЫКЛ', 'auto'); }
-        if (s.humidity < c.humidOn && !s.humidifier) { s.humidifier = true; this._throttledLog('hm_on', `🤖 Авто: Увлажнитель ВКЛ (${s.humidity}%)`, 60000); }
-        else if (s.humidity > c.humidOff && s.humidifier) { s.humidifier = false; s.addLog(`🤖 Авто: Увлажнитель ВЫКЛ (${s.humidity}%)`, 'auto'); }
-        s.soil.forEach((v, i) => { if (v < c.soilMin && !s.pumps[i]) this._startPump(i, true); });
-    }
-    manualToggle(dev) {
-        const s = this.state; s[dev] = !s[dev]; this.manualOverride[dev] = s[dev];
-        const names = {heater:'🔥 Обогрев', fan:'💨 Вентилятор', humidifier:'💧 Увлажнитель'};
-        s.addLog(`${names[dev]} ${s[dev]?'ВКЛ (ручной)':'ВЫКЛ (ручной)'}`, s[dev]?'ok':'warn');
-        this.bus.emit('toast:show', `${names[dev]} ${s[dev]?'включён':'выключен'}`); this.bus.emit('ui:update');
-    }
-    startPumpManual(i) { this._startPump(i, false); this.bus.emit('toast:show', `💦 Полив Грядка ${i+1} запущен`); }
-    stopPump(i) { const s=this.state; s.pumps[i]=false; if(s.pumpTimers[i]){clearTimeout(s.pumpTimers[i]);s.pumpTimers[i]=null;} s.addLog(`💦 Полив Грядка ${i+1} остановлен`,'warn'); this.bus.emit('toast:show',`⏹ Полив Грядка ${i+1} остановлен`); this.bus.emit('ui:update'); }
-    waterAll() { for(let i=0;i<4;i++) if(!this.state.pumps[i]) this.startPumpManual(i); this.bus.emit('toast:show','💦 Полив всех грядок запущен'); }
-    _startPump(i, isAuto) { const s=this.state; if(s.pumps[i])return; s.pumps[i]=true; s.addLog(`💦 Полив Грядка ${i+1}${isAuto?' (авто)':' (ручной)'}`,'ok'); if(s.pumpTimers[i])clearTimeout(s.pumpTimers[i]); s.pumpTimers[i]=setTimeout(()=>{s.pumps[i]=false;s.addLog(`💦 Полив Грядка ${i+1} завершён`,'ok');this.bus.emit('ui:update');},s.cfg.waterSec*1000); this.bus.emit('ui:update'); }
-    _throttledLog(key,msg,interval){ if(!this.autoLogThrottle[key]||Date.now()-this.autoLogThrottle[key]>interval){this.state.addLog(msg,'auto');this.autoLogThrottle[key]=Date.now();} }
+const manualOverride={};
+function runAuto() {
+  if(!state.cfg.autoMode)return;
+  const s=state,c=s.cfg;
+  if(s.tempAir<c.heaterOn&&!s.heater){s.heater=true;s.addLog(`🤖 Авто: Обогрев ВКЛ (${s.tempAir}°C < ${c.heaterOn}°C)`,'auto');}
+  else if(s.tempAir>c.heaterOff&&s.heater){s.heater=false;s.addLog(`🤖 Авто: Обогрев ВЫКЛ`,'auto');}
+  if(s.tempAir>c.fanOn&&!s.fan){s.fan=true;s.addLog(`🤖 Авто: Вентилятор ВКЛ`,'auto');}
+  else if(s.tempAir<c.fanOff&&s.fan&&!manualOverride.fan){s.fan=false;s.addLog('🤖 Авто: Вентилятор ВЫКЛ','auto');}
+  if(s.humidity<c.humidOn&&!s.humidifier){s.humidifier=true;s.addLog(`🤖 Авто: Увлажнитель ВКЛ`,'auto');}
+  else if(s.humidity>c.humidOff&&s.humidifier){s.humidifier=false;s.addLog(`🤖 Авто: Увлажнитель ВЫКЛ`,'auto');}
+  s.soil.forEach((v,i)=>{if(v<c.soilMin&&!s.pumps[i])startPump(i,true);});
+}
+function manualToggle(dev) {
+  state[dev]=!state[dev];manualOverride[dev]=state[dev];
+  const names={heater:'🔥 Обогрев',fan:'💨 Вентилятор',humidifier:'💧 Увлажнитель'};
+  state.addLog(`${names[dev]} ${state[dev]?'ВКЛ (ручной)':'ВЫКЛ (ручной)'}`,state[dev]?'ok':'warn');
+  showToast(`${names[dev]} ${state[dev]?'включён':'выключен'}`);updateUI();
+}
+function startPump(i,isAuto){if(state.pumps[i])return;state.pumps[i]=true;state.addLog(`💦 Полив Грядка ${i+1}${isAuto?' (авто)':' (ручной)'}`,'ok');if(state.pumpTimers[i])clearTimeout(state.pumpTimers[i]);state.pumpTimers[i]=setTimeout(()=>{state.pumps[i]=false;state.addLog(`💦 Полив Грядка ${i+1} завершён`,'ok');updateUI();},state.cfg.waterSec*1000);updateUI();}
+function stopPump(i){state.pumps[i]=false;if(state.pumpTimers[i]){clearTimeout(state.pumpTimers[i]);state.pumpTimers[i]=null;}state.addLog(`💦 Полив Грядка ${i+1} остановлен`,'warn');showToast(`⏹ Полив Грядка ${i+1} остановлен`);updateUI();}
+function waterAll(){for(let i=0;i<4;i++)if(!state.pumps[i])startPump(i,false);showToast('💦 Полив всех грядок');}
+
+// ====================================================================
+//  RENDER
+// ====================================================================
+function updateUI() {
+  const s=state;
+  // Dashboard
+  setH('db-temp',s.tempAir.toFixed(1)+'<span class="munit">°C</span>');
+  setH('db-hum',s.humidity+'<span class="munit">%</span>');
+  setH('db-co2',s.co2+'<span class="munit">ppm</span>');
+  setH('db-lux',s.lux+'<span class="munit">lx</span>');
+  setBtnActive('qb-heater',s.heater,'🔥 Обогрев','btn-r');
+  setBtnActive('qb-fan',s.fan,'💨 Вентил.','btn-g');
+  setBtnActive('qb-humid',s.humidifier,'💧 Увлажн.','btn-i');
+  // Sensors
+  setH('s-ta',s.tempAir.toFixed(1)+'<span class="munit">°C</span>');
+  setH('s-hu',s.humidity+'<span class="munit">%</span>');
+  setH('s-ts',s.tempSoil.toFixed(1)+'<span class="munit">°C</span>');
+  setH('s-pr',s.pressure+'<span class="munit">hPa</span>');
+  setH('s-co',s.co2+'<span class="munit">ppm</span>');
+  setH('s-lx',s.lux+'<span class="munit">lx</span>');
+  setW('s-co-b',Math.min(100,s.co2/10));setW('s-lx-b',Math.min(100,s.lux/500));
+  const w1=el('wl1');if(w1){w1.textContent=s.waterLvl+'%';w1.className='badge '+(s.waterLvl>20?'b-ok':'b-danger');setW('wl1b',s.waterLvl);}
+  const w2=el('wl2');if(w2){w2.textContent=s.condensate+'%';w2.className='badge b-dim';setW('wl2b',s.condensate);}
+  // Climate toggles
+  const tf=el('tog-fan'),th=el('tog-heater'),thi=el('tog-humid');
+  if(tf)tf.checked=s.fan;if(th)th.checked=s.heater;if(thi)thi.checked=s.humidifier;
+  // System badges
+  setBadge('sys-heater',s.heater,'ВКЛ','ВЫКЛ');
+  setBadge('sys-fan',s.fan,'ВКЛ','ВЫКЛ');
+  setBadge('sys-humid',s.humidifier,'ВКЛ','ВЫКЛ');
+  const wb=el('sys-water');if(wb){wb.textContent=s.waterLvl+'%';wb.className='badge '+(s.waterLvl>20?'b-ok':'b-danger');}
+  // Irrigation
+  const sg=el('soil-grid');if(sg)sg.innerHTML=s.soil.map((v,i)=>{const cls=s.pumps[i]?'watering':(v<s.cfg.soilMin?'dry':''),badgeCls=v>s.cfg.soilMin?'b-ok':'b-warn';return`<div class="soil-card ${cls}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:12px;font-weight:700">🌱 Грядка ${i+1}</span><span class="badge ${badgeCls}">${v}%</span></div><div class="prog"><div class="pf" style="width:${v}%;background:${v>s.cfg.soilMin?'var(--green)':'var(--warn)'}"></div></div>${s.pumps[i]?`<button class="btn btn-w btn-full" style="margin-top:7px;padding:7px;font-size:11px" onclick="stopPump(${i})">⏹ Стоп</button>`:`<button class="btn btn-ghost btn-full" style="margin-top:7px;padding:7px;font-size:11px" onclick="startPump(${i},false)">💦 ${s.cfg.waterSec}с</button>`}</div>`;}).join('');
+  setW('irr-wl',s.waterLvl);const ib=el('irr-wlb');if(ib){ib.textContent=s.waterLvl+'%';ib.className='badge '+(s.waterLvl>20?'b-ok':'b-danger');}
+  // Log
+  const ll=el('log-list');if(ll){const logs=s.logs;ll.innerHTML=logs.length===0?'<div style="text-align:center;color:var(--muted);font-size:11px;padding:10px">Нет событий</div>':logs.slice(0,15).map(l=>{const clsMap={err:'li-err',warn:'li-warn',auto:'li-auto',ok:'li-ok',esp:'li-esp'};return`<div class="log-item ${clsMap[l.type]||'li-ok'}"><span>${l.text}</span><span class="log-t">${l.t}</span></div>`;}).join('');}
+  // Clock
+  const n=new Date();setT('hdr-time',pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds()));setT('hdr-date',RU_DAYS[n.getDay()]+', '+n.getDate()+' '+RU_MONTHS[n.getMonth()]+' '+n.getFullYear());setT('cm-time',pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds()));
+  // Sparklines
+  drawSpark('sp-temp',state.hist.temp,'#00ff7f');drawSpark('sp-hum',state.hist.hum,'#00b4fc');drawSpark('sp-co2',state.hist.co2,'#ffa502');drawSpark('sp-lux',state.hist.lux,'#fbbf24');
+}
+
+function setBtnActive(id,on,label,onCls){const e=el(id);if(!e)return;e.className='btn '+(on?onCls:'btn-ghost');e.innerHTML=(on?'⏹ ':'')+label;}
+function setBadge(id,on,onT,offT){const e=el(id);if(!e)return;e.textContent=on?onT:offT;e.className='badge '+(on?'b-ok':'b-dim');}
+function drawSpark(cid,data,color){const c=el(cid);if(!c||data.length<2)return;const dpr=window.devicePixelRatio||1,W=c.offsetWidth||120,H=c.offsetHeight||24;c.width=W*dpr;c.height=H*dpr;c.style.width=W+'px';c.style.height=H+'px';const ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);const mn=Math.min(...data),mx=Math.max(...data),rng=mx-mn||1,xs=i=>(i/(data.length-1))*W,ys=v=>H-((v-mn)/rng)*(H-2)-1;ctx.beginPath();ctx.moveTo(xs(0),ys(data[0]));for(let i=1;i<data.length;i++)ctx.lineTo(xs(i),ys(data[i]));ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();ctx.lineTo(xs(data.length-1),H);ctx.lineTo(0,H);ctx.closePath();ctx.globalAlpha=.18;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;}
+
+// ====================================================================
+//  LIGHTING
+// ====================================================================
+class LC {
+  static calcDayLength(lat,date=new Date()){const doy=Math.floor((date-new Date(date.getFullYear(),0,0))/86400000),P=Math.asin(.39795*Math.cos(.2163108+2*Math.atan(.9671396*Math.tan(.0086*(doy-186))))),arg=(Math.sin(.8333*Math.PI/180)+Math.sin(lat*Math.PI/180)*Math.sin(P))/(Math.cos(lat*Math.PI/180)*Math.cos(P)),D=24-(24/Math.PI)*Math.acos(Math.max(-1,Math.min(1,arg)));return Math.max(0,Math.min(24,Math.round(D*10)/10));}
+  static calcSunTimes(lat,date=new Date()){const dl=this.calcDayLength(lat,date),noon=13,half=dl/2;return{rise:noon-half,set:noon+half,dl};}
+  static hm(h){let hh=Math.floor(h),mm=Math.round((h-hh)*60);if(mm===60){hh++;mm=0;}return pad(hh)+':'+pad(mm);}
+}
+function updateLightingPage(){
+  const reg=REGIONS[state.cfg.region],crop=CROPS[state.cfg.crop];if(!reg||!crop)return;
+  const now=new Date(),sun=LC.calcSunTimes(reg.lat,now),natural=sun.dl,need=(crop.min+crop.max)/2,supp=Math.max(0,need-natural);
+  setT('pr-region',reg.name);setT('pr-rise',LC.hm(sun.rise));setT('pr-set',LC.hm(sun.set));
+  setT('pr-natural',natural.toFixed(1)+' ч');setT('pr-need',`${crop.min}–${crop.max} ч`);setT('pr-supp',supp>0?rndn(supp,1)+' ч':'Не нужна ✓');
+  const sched=el('led-schedule');if(!sched)return;
+  if(supp>0){const sh=supp/2,ms=sun.rise-sh,ee=sun.set+sh;sched.innerHTML=`<div class="sr"><span>🌅 Досветка утром</span><span class="sr-t">${LC.hm(ms)} – ${LC.hm(sun.rise)}</span></div><div class="sr"><span>☀️ Солнце</span><span class="sr-t">${LC.hm(sun.rise)} – ${LC.hm(sun.set)}</span></div><div class="sr"><span>🌆 Досветка вечером</span><span class="sr-t">${LC.hm(sun.set)} – ${LC.hm(ee)}</span></div>`;}
+  else sched.innerHTML=`<div class="sr"><span>☀️ Солнце (достаточно)</span><span class="sr-t">${LC.hm(sun.rise)} – ${LC.hm(sun.set)}</span></div>`;
+  setH('l-lux',state.lux+'<span class="munit">lx</span>');setH('l-photo',rndn(natural,1)+'<span class="munit">ч</span>');
 }
 
 // ====================================================================
-//  CAMERA MANAGER
+//  TABS, SETTINGS, PRESETS
 // ====================================================================
-class CameraManager {
-    constructor(state,bus){this.state=state;this.bus=bus;}
-    select(index){this.state.selCam=index;const cam=this.state.cameras[index];setT('cm-label',`${cam.name} — ${cam.label}`);const img=el('cm-img'),ph=el('cm-ph');if(cam.url){img.src=cam.url;img.style.display='block';ph.style.display='none';}else{img.style.display='none';ph.style.display='flex';}this.bus.emit('cameras:render');}
-    applyUrl(index,url){this.state.cameras[index].url=url.trim();this.select(index);this.bus.emit('toast:show',url?`📷 Подключение: ${this.state.cameras[index].name}`:'📷 URL очищен');}
+function switchTab(tab){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));const p=el('page-'+tab);if(p)p.classList.add('active');const n=el('nav-'+tab);if(n)n.classList.add('active');if(tab==='lighting')updateLightingPage();if(tab==='settings'){renderCropPresetCards();updateEspCodeHint();}}
+function setSeason(s){state.cfg.season=s;const isSum=s==='summer',bar=el('season-bar');if(bar)bar.className='season-bar '+s;setH('season-label',isSum?'☀️ Режим: ЛЕТО':'❄️ Режим: ЗИМА');const bs=el('sbtn-summer'),bw=el('sbtn-winter');if(bs)bs.className='season-btn'+(isSum?' active summer':'');if(bw)bw.className='season-btn'+(isSum?'':' active winter');setT('fan-hint',`Вкл при >${state.cfg.fanOn}°C`);const lb=el('clim-season-lbl');if(lb)lb.textContent=isSum?'ЛЕТО':'ЗИМА';setH('clim-ttarget',(isSum?'22':'18')+'<span class="munit">°C</span>');setH('clim-htarget','70<span class="munit">%</span>');showToast(isSum?'☀️ ЛЕТО':'❄️ ЗИМА');}
+function toggleAuto(){const c=el('tog-auto').checked;state.cfg.autoMode=c;const b=el('auto-badge');if(b){b.className='auto-badge '+(c?'on':'off');b.textContent=c?'● ВКЛ':'○ ВЫКЛ';}state.addLog('🤖 Авторежим '+(c?'ВКЛ':'ВЫКЛ'),c?'auto':'warn');showToast('Авторежим '+(c?'включён':'выключен'));}
+function adj(key,delta){
+  if(key==='pollInterval'){espPollSeconds=Math.max(1,Math.min(30,(espPollSeconds||3)+delta));state.cfg.pollInterval=espPollSeconds;const e=el('sv-pollInterval');if(e)e.textContent=espPollSeconds;if(espIp)startEspPolling();return;}
+  state.cfg[key]=+(state.cfg[key]+delta).toFixed(1);const e=el('sv-'+key);if(e)e.textContent=state.cfg[key];
 }
+function resetSettings(){state.cfg={...state.cfg,heaterOn:18,heaterOff:24,fanOn:28,fanOff:25,humidOn:65,humidOff:80,co2Alert:1500,soilMin:55,waterSec:45};updateSettingsUI();showToast('↺ Сброс настроек');}
+function clearLogs(){state.logs=[];updateUI();showToast('Лог очищен');}
+function updateSettingsUI(){['heaterOn','heaterOff','fanOn','humidOn','humidOff','co2Alert','soilMin','waterSec'].forEach(k=>{const e=el('sv-'+k);if(e)e.textContent=state.cfg[k];});const pi=el('sv-pollInterval');if(pi)pi.textContent=espPollSeconds;}
+function applyCropPreset(cropKey){const p=CROP_PRESETS[cropKey];if(!p)return;const c=state.cfg;c.heaterOn=p.heaterOn;c.heaterOff=p.heaterOff;c.fanOn=p.fanOn;c.fanOff=p.fanOff;c.humidOn=p.humidOn;c.humidOff=p.humidOff;c.co2Alert=p.co2Alert;c.soilMin=p.soilMin;c.waterSec=p.waterSec;c.crop=cropKey;const cs=el('crop-select');if(cs)cs.value=cropKey;setT('crop-icon',p.icon);setT('crop-name',p.name);setT('crop-desc',p.desc);updateSettingsUI();renderCropPresetCards();updateLightingPage();state.addLog(`🌱 Режим: ${p.name}`,'ok');showToast(`🌱 ${p.name} активирован`);}
+function renderCropPresetCards(){const g=el('crop-preset-grid');if(!g)return;g.innerHTML=Object.entries(CROP_PRESETS).map(([k,p])=>`<div class="crop-preset-card${k===state.cfg.crop?' active':''}" onclick="applyCropPreset('${k}')"><div class="cp-icon">${p.icon}</div><div class="cp-name">${p.name.replace(/^[^\s]+\s/,'')}</div><div class="cp-desc">${p.desc}</div><div class="cp-info"><span>🌡 ${p.heaterOn}–${p.heaterOff}°C</span><span>💧 ${p.humidOn}–${p.humidOff}%</span></div></div>`).join('');}
+function onRegionChange(){state.cfg.region=el('region-sel').value;updateLightingPage();}
+function onCropChange(){state.cfg.crop=el('crop-sel').value;updateLightingPage();}
+function onCropPresetChange(){applyCropPreset(el('crop-select').value);}
+function toggleAlarmPanel(){window._ap=!window._ap;const p=el('alarm-panel');if(p)p.classList.toggle('open',window._ap);}
+window._ap=false;
 
 // ====================================================================
-//  DASHBOARD RENDERER
+//  WEATHER
 // ====================================================================
-class DashboardRenderer {
-    constructor(state,bus){this.state=state;this.bus=bus;}
-    updateAll(){this._updateDashboard();this._updateSensors();this._updateClimate();this._updateIrrigation();this._updateLighting();this._updateAlarmUI();this._updateSystemBadges();this._updateLogList();this._updateClock();}
-    drawSparklines(){this._drawSpark('sp-temp',this.state.hist.temp,'#00ff7f');this._drawSpark('sp-hum',this.state.hist.hum,'#00b4fc');this._drawSpark('sp-co2',this.state.hist.co2,'#ffa502');this._drawSpark('sp-lux',this.state.hist.lux,'#fbbf24');}
-    updateSeasonUI(){
-        const s=this.state.cfg.season,isSum=s==='summer',bar=el('season-bar');if(bar)bar.className='season-bar '+s;
-        setH('season-label',isSum?'☀️ Режим: ЛЕТО':'❄️ Режим: ЗИМА');
-        const bs=el('sbtn-summer'),bw=el('sbtn-winter');if(bs)bs.className='season-btn'+(isSum?' active summer':'');if(bw)bw.className='season-btn'+(isSum?'':' active winter');
-        setT('fan-hint',isSum?`Вкл при >${this.state.cfg.fanOn}°C (забор с улицы)`:`Вкл при >${this.state.cfg.fanOn}°C (рециркуляция)`);
-        setT('vent-mode-hint',isSum?'Забор свежего воздуха с улицы':'Рециркуляция внутри теплицы');
-        const vmb=el('vent-mode-badge');if(vmb){vmb.textContent=isSum?'ЛЕТО':'ЗИМА';vmb.className='badge '+(isSum?'b-warn':'b-info');}
-        const clbl=el('clim-season-lbl');if(clbl)clbl.textContent=isSum?'ЛЕТО':'ЗИМА';
-        setH('clim-ttarget',(isSum?'22':'18')+'<span class="munit">°C</span>');setH('clim-htarget','70<span class="munit">%</span>');
-    }
-    updateOutdoorWeather(data){
-        if(!data){setT('ow-temp','--°C');setT('ow-desc','Нет данных');setT('ow-updated','');setT('ow-icon','🌤');setT('ow-hum','💧 --%');setT('ow-wind','💨 -- м/с');setT('ow-pres','📊 -- hPa');return;}
-        setT('ow-icon',data.icon);setT('ow-temp',data.temp+'°C (ощущ. '+data.feels_like+'°C)');
-        setT('ow-desc',data.description);setT('ow-hum','💧 '+data.humidity+'%');
-        setT('ow-wind','💨 '+data.wind+' м/с');setT('ow-pres','📊 '+data.pressure+' hPa');
-        const ago=Math.round((new Date()-data.updated)/60000);setT('ow-updated','Обновлено: '+(ago<1?'только что':ago+' мин назад')+' · '+data.city);
-    }
-    _updateDashboard(){const s=this.state;setH('db-temp',s.tempAir.toFixed(1)+'<span class="munit">°C</span>');setH('db-hum',s.humidity+'<span class="munit">%</span>');setH('db-co2',s.co2+'<span class="munit">ppm</span>');setH('db-lux',s.lux+'<span class="munit">lx</span>');this._setBtnActive('qb-heater',s.heater,'🔥 Обогрев','btn-r');this._setBtnActive('qb-fan',s.fan,'💨 Вентил.','btn-g');this._setBtnActive('qb-humid',s.humidifier,'💧 Увлажн.','btn-i');}
-    _updateSensors(){const s=this.state;setH('s-ta',s.tempAir.toFixed(1)+'<span class="munit">°C</span>');setH('s-hu',s.humidity+'<span class="munit">%</span>');setH('s-ts',s.tempSoil.toFixed(1)+'<span class="munit">°C</span>');setH('s-pr',s.pressure+'<span class="munit">hPa</span>');setH('s-co',s.co2+'<span class="munit">ppm</span>');setH('s-lx',s.lux+'<span class="munit">lx</span>');setW('s-co-b',Math.min(100,s.co2/10));setW('s-lx-b',Math.min(100,s.lux/500));const w1=el('wl1');if(w1){w1.textContent=s.waterLvl+'%';w1.className='badge '+(s.waterLvl>20?'b-ok':'b-danger');setW('wl1b',s.waterLvl);}const w2=el('wl2');if(w2){w2.textContent=s.condensate+'%';w2.className='badge b-dim';setW('wl2b',s.condensate);}}
-    _updateClimate(){const s=this.state,tf=el('tog-fan'),th=el('tog-heater'),thi=el('tog-humid');if(tf)tf.checked=s.fan;if(th)th.checked=s.heater;if(thi)thi.checked=s.humidifier;}
-    _updateIrrigation(){const s=this.state,sg=el('soil-grid');if(!sg)return;sg.innerHTML=s.soil.map((v,i)=>{const cls=s.pumps[i]?'watering':(v<s.cfg.soilMin?'dry':''),badgeCls=v>s.cfg.soilMin?'b-ok':'b-warn';return`<div class="soil-card ${cls}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:12px;font-weight:700">🌱 Грядка ${i+1}</span><span class="badge ${badgeCls}">${v}%</span></div><div class="prog"><div class="pf" style="width:${v}%;background:${v>s.cfg.soilMin?'var(--green)':'var(--warn)'}"></div></div>${s.pumps[i]?`<button class="btn btn-w btn-full" style="margin-top:7px;padding:7px;font-size:11px" onclick="autoCtrl.stopPump(${i})">⏹ Стоп</button>`:`<button class="btn btn-ghost btn-full" style="margin-top:7px;padding:7px;font-size:11px" onclick="autoCtrl.startPumpManual(${i})">💦 ${s.cfg.waterSec}с</button>`}</div>`;}).join('');setW('irr-wl',s.waterLvl);const ib=el('irr-wlb');if(ib){ib.textContent=s.waterLvl+'%';ib.className='badge '+(s.waterLvl>20?'b-ok':'b-danger');}}
-    _updateLighting(){const ll=el('l-lux');if(ll)setH('l-lux',this.state.lux+'<span class="munit">lx</span>');}
-    _updateSystemBadges(){const s=this.state;this._setBadge('sys-heater',s.heater,'ВКЛ','ВЫКЛ');this._setBadge('sys-fan',s.fan,'ВКЛ','ВЫКЛ');this._setBadge('sys-humid',s.humidifier,'ВКЛ','ВЫКЛ');const wBadge=el('sys-water');if(wBadge){wBadge.textContent=s.waterLvl+'%';wBadge.className='badge '+(s.waterLvl>20?'b-ok':'b-danger');}}
-    _updateLogList(){const ll=el('log-list');if(!ll)return;const logs=this.state.logs;ll.innerHTML=logs.length===0?'<div style="text-align:center;color:var(--muted);font-size:11px;padding:10px">Нет событий</div>':logs.slice(0,15).map(l=>{const clsMap={err:'li-err',warn:'li-warn',auto:'li-auto',ok:'li-ok'};return`<div class="log-item ${clsMap[l.type]||'li-ok'}"><span>${l.text}</span><span class="log-t">${l.t}</span></div>`;}).join('');}
-    _updateAlarmUI(){const active=this.state.alarms.filter(a=>!a.dismissed),panel=el('alarm-list');if(!panel)return;if(active.length===0)panel.innerHTML='<div style="padding:12px 14px;font-size:12px;color:var(--muted)">Нет активных аварий ✓</div>';else panel.innerHTML=active.map(a=>{const cls={crit:'alarm-sev-crit',warn:'alarm-sev-warn',info:'alarm-sev-info'}[a.sev]||'',ts=pad(a.ts.getHours())+':'+pad(a.ts.getMinutes());return`<div class="alarm-item"><span class="${cls}">${a.text}</span><span style="display:flex;align-items:center;gap:6px;flex-shrink:0"><span style="font-size:10px;color:var(--muted)">${ts}</span><button class="alarm-dismiss" onclick="alarmMgr.clear('${a.id}')">✕</button></span></div>`;}).join('');const cnt=active.length,badge=el('alarm-count');if(badge){badge.textContent=cnt;badge.style.display=cnt>0?'flex':'none';}}
-    _updateClock(){const n=new Date();setT('hdr-time',pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds()));setT('hdr-date',RU_DAYS[n.getDay()]+', '+n.getDate()+' '+RU_MONTHS[n.getMonth()]+' '+n.getFullYear());setT('cm-time',pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds()));}
-    _drawSpark(cid,data,color){const c=el(cid);if(!c||data.length<2)return;const dpr=window.devicePixelRatio||1,W=c.offsetWidth||120,H=c.offsetHeight||24;c.width=W*dpr;c.height=H*dpr;c.style.width=W+'px';c.style.height=H+'px';const ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);const mn=Math.min(...data),mx=Math.max(...data),rng=mx-mn||1,xs=i=>(i/(data.length-1))*W,ys=v=>H-((v-mn)/rng)*(H-2)-1;ctx.beginPath();ctx.moveTo(xs(0),ys(data[0]));for(let i=1;i<data.length;i++)ctx.lineTo(xs(i),ys(data[i]));ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();ctx.lineTo(xs(data.length-1),H);ctx.lineTo(0,H);ctx.closePath();ctx.globalAlpha=.18;ctx.fillStyle=color;ctx.fill();ctx.globalAlpha=1;}
-    _setBtnActive(id,on,label,onCls){const e=el(id);if(!e)return;e.className='btn '+(on?onCls:'btn-ghost');e.innerHTML=(on?'⏹ ':'')+label;}
-    _setBadge(id,on,onT,offT){const e=el(id);if(!e)return;e.textContent=on?onT:offT;e.className='badge '+(on?'b-ok':'b-dim');}
-}
+async function fetchWeather(){
+  const reg=REGIONS[state.cfg.region]||REGIONS.chisinau;
+  try{const res=await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${reg.lat}&lon=${reg.lon}&appid=${WEATHER_API_KEY}&units=metric&lang=ru`);if(!res.ok)throw new Error();const d=await res.json();const icons={'2':'⛈️','3':'🌦️','5':'🌧️','6':'🌨️','7':'🌫️','800':'☀️','801':'🌤️','802':'⛅'};const icon=icons[String(d.weather[0].id)]||icons[String(d.weather[0].id).charAt(0)]||'☁️';setT('ow-icon',icon);setT('ow-temp',d.main.temp.toFixed(0)+'°C (ощущ. '+d.main.feels_like.toFixed(0)+'°C)');setT('ow-desc',d.weather[0].description);setT('ow-hum','💧 '+d.main.humidity+'%');setT('ow-wind','💨 '+Math.round(d.wind.speed*10)/10+' м/с');setT('ow-pres','📊 '+d.main.pressure+' hPa');setT('ow-updated','Обновлено только что · '+d.name);state.addLog(`🌤 Погода: ${icon} ${Math.round(d.main.temp)}°C, ${d.weather[0].description}`,'ok');}catch(e){setT('ow-desc','Нет данных о погоде');setT('ow-updated','');}}
 
 // ====================================================================
-//  APPLICATION
+//  TOAST
 // ====================================================================
-class SmartGreenhouseApp {
-    constructor() {
-        this.bus = new EventEmitter();
-        this.state = new StateManager();
-        this.alarmMgr = new AlarmManager(this.state, this.bus);
-        this.autoCtrl = new AutoController(this.state, this.bus);
-        this.cameraMgr = new CameraManager(this.state, this.bus);
-        this.renderer = new DashboardRenderer(this.state, this.bus);
-        this.weatherSvc = new WeatherService(this.state, this.bus);
-        this.currentTab = 'dashboard'; this.toastTimer = null;
-        manualOverride = this.autoCtrl.manualOverride = {};
-        this.bus.on('ui:update', () => this.renderer.updateAll());
-        this.bus.on('alarms:changed', () => this.renderer._updateAlarmUI());
-        this.bus.on('toast:show', (msg) => this._showToast(msg));
-        this.bus.on('cameras:render', () => this._renderCameras());
-        this.bus.on('weather:updated', (data) => this.renderer.updateOutdoorWeather(data));
-        this._boot();
-    }
-    _boot() {
-        this.state.initHistory();
-        this.state.addLog('✅ Система запущена (Кишинёв, Молдова)', 'ok');
-        this.state.addLog('🌡 Датчики опрошены: норма', 'ok');
-        this.state.addLog('🤖 Авторежим активен', 'auto');
-        this.state.addLog('📷 Видеонаблюдение готово', 'ok');
-        this.weatherSvc.start();
-        this.setSeason('summer');
-        this._updateSettingsUI();
-        this._renderCameras();
-        this._renderCropPresetCards();
-        this.renderer.updateAll();
-        this.renderer.drawSparklines();
-        this._updateLightingPage();
-        setInterval(() => { this.state.simulate(); this.autoCtrl.run(); this.alarmMgr.checkAll(); this.renderer.updateAll(); this.renderer.drawSparklines(); }, 2000);
-    }
-    switchTab(tab) { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));const pageEl=el('page-'+tab);if(pageEl)pageEl.classList.add('active');const navEl=el('nav-'+tab);if(navEl)navEl.classList.add('active');this.currentTab=tab;if(tab==='cameras')this._renderCameras();if(tab==='lighting')this._updateLightingPage();if(tab==='settings')this._renderCropPresetCards(); }
-    setSeason(season){this.state.cfg.season=season;this.renderer.updateSeasonUI();this.state.addLog('🔄 Сезон: '+(season==='summer'?'ЛЕТО':'ЗИМА'),'ok');this._showToast(season==='summer'?'☀️ ЛЕТО':'❄️ ЗИМА');}
-    toggleAuto(){const checked=el('tog-auto').checked;this.state.cfg.autoMode=checked;const badge=el('auto-badge');if(badge){badge.className='auto-badge '+(checked?'on':'off');badge.textContent=checked?'● ВКЛ':'○ ВЫКЛ';}this.state.addLog('🤖 Авторежим '+(checked?'ВКЛ':'ВЫКЛ'),checked?'auto':'warn');this._showToast('Авторежим '+(checked?'включён':'выключен'));}
-    adjustCfg(key,delta){this.state.cfg[key]=+(this.state.cfg[key]+delta).toFixed(1);const e=el('sv-'+key);if(e)e.textContent=this.state.cfg[key];this._updateClimatHints();}
-    resetSettings(){this.state.cfg={...DEFAULT_CFG};this._updateSettingsUI();this._showToast('↺ Настройки сброшены');}
-    clearLogs(){this.state.logs=[];this.renderer._updateLogList();this._showToast('Лог очищен');}
-    setLed(channel,value){const v=+value;if(channel==='red'){this.state.redLed=v;setT('l-rv',v+'%');setW('l-rb',v);}else{this.state.blueLed=v;setT('l-bv',v+'%');setW('l-bb',v);}}
-    updateLighting(){this._updateLightingPage();}
-    applyCropPreset(cropKey){const preset=CROP_PRESETS[cropKey];if(!preset)return;const c=this.state.cfg;c.heaterOn=preset.heaterOn;c.heaterOff=preset.heaterOff;c.fanOn=preset.fanOn;c.fanOff=preset.fanOff;c.humidOn=preset.humidOn;c.humidOff=preset.humidOff;c.co2Alert=preset.co2Alert;c.soilMin=preset.soilMin;c.waterSec=preset.waterSec;c.crop=cropKey;const cropSel=el('crop-select');if(cropSel)cropSel.value=cropKey;const cropSel2=el('crop-sel');if(cropSel2)cropSel2.value=cropKey;setT('crop-icon',preset.icon);setT('crop-name',preset.name);setT('crop-desc',preset.desc);this._updateSettingsUI();this._renderCropPresetCards();this._updateLightingPage();this.state.addLog(`🌱 Режим: ${preset.name} — пороги применены`,'ok');this._showToast(`🌱 ${preset.name} активирован`);}
-    _showToast(msg){const t=el('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(this.toastTimer);this.toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
-    _updateSettingsUI(){const keys=['heaterOn','heaterOff','fanOn','humidOn','humidOff','co2Alert','soilMin','waterSec'];keys.forEach(k=>{const e=el('sv-'+k);if(e)e.textContent=this.state.cfg[k];});this._updateClimatHints();}
-    _updateClimatHints(){const c=this.state.cfg;setT('heat-hint',`Вкл при <${c.heaterOn}°C, Выкл при >${c.heaterOff}°C`);setT('fan-hint',`Вкл при >${c.fanOn}°C, Выкл при <${c.fanOff}°C`);setT('humid-hint',`Вкл при <${c.humidOn}%, Выкл при >${c.humidOff}%`);}
-    _updateLightingPage(){const reg=REGIONS[this.state.cfg.region],crop=CROPS[this.state.cfg.crop];if(!reg||!crop)return;const now=new Date(),sun=LightingCalculator.calcSunTimes(reg.lat,now),natural=sun.dl,need=(crop.min+crop.max)/2,supp=Math.max(0,need-natural);setT('pr-region',reg.name);setT('pr-rise',LightingCalculator.hoursToHM(sun.rise));setT('pr-set',LightingCalculator.hoursToHM(sun.set));setT('pr-natural',natural.toFixed(1)+' ч');setT('pr-need',`${crop.min}–${crop.max} ч (${crop.name})`);setT('pr-supp',supp>0?rndn(supp,1)+' ч':'Не нужна ✓');const sched=el('led-schedule');if(!sched)return;const hm=LightingCalculator.hoursToHM;if(supp>0){const suppHalf=supp/2,morningStart=sun.rise-suppHalf,eveningEnd=sun.set+suppHalf;sched.innerHTML=`<div class="sr"><span>🌅 Досветка утром</span><span class="sr-t">${hm(morningStart)} – ${hm(sun.rise)}</span></div><div class="sr"><span>☀️ Солнце</span><span class="sr-t">${hm(sun.rise)} – ${hm(sun.set)}</span></div><div class="sr"><span>🌆 Досветка вечером</span><span class="sr-t">${hm(sun.set)} – ${hm(eveningEnd)}</span></div><div class="sr"><span>🌙 Темнота</span><span class="sr-t">${hm(eveningEnd)} – ${hm(morningStart+24)}</span></div>`;}else{sched.innerHTML=`<div class="sr"><span>☀️ Солнце (достаточно)</span><span class="sr-t">${hm(sun.rise)} – ${hm(sun.set)}</span></div><div class="sr"><span>🌙 Темнота</span><span class="sr-t">${hm(sun.set)} – ${hm(sun.rise+24)}</span></div>`;}setH('l-photo',rndn(natural,1)+'<span class="munit">ч</span>');}
-    _renderCameras(){const thumbs=el('cam-thumbs'),settings=el('cam-settings');if(!thumbs||!settings)return;const cams=this.state.cameras;thumbs.innerHTML=cams.map((cam,i)=>`<div class="cam-thumb${i===this.state.selCam?' sel':''}" onclick="app.cameraMgr.select(${i})">${cam.url?`<img src="${cam.url}" onerror="this.style.display='none'">`:''}<div class="cam-ph" id="cam-ph-${i}"><span class="ci">📷</span><span>${cam.label}</span></div><div class="cam-ov"><span class="cam-tag">${cam.name}</span></div></div>`).join('');settings.innerHTML=cams.map((cam,i)=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px">${cam.name} — ${cam.label}</div><div class="url-row"><input class="url-inp" id="curl-${i}" placeholder="http://192.168.x.x/mjpeg" value="${cam.url}"><button class="btn btn-g" style="flex-shrink:0;padding:8px 10px" onclick="app.cameraMgr.applyUrl(${i},document.getElementById('curl-${i}').value)">▶</button></div></div>`).join('');}
-    _renderCropPresetCards(){const grid=el('crop-preset-grid');if(!grid)return;const currentCrop=this.state.cfg.crop;grid.innerHTML=Object.entries(CROP_PRESETS).map(([key,p])=>{const active=key===currentCrop;return`<div class="crop-preset-card${active?' active':''}" onclick="app.applyCropPreset('${key}')"><div class="cp-icon">${p.icon}</div><div class="cp-name">${p.name.replace(/^[^\s]+\s/,'')}</div><div class="cp-desc">${p.desc}</div><div class="cp-info"><span>🌡 ${p.heaterOn}–${p.heaterOff}°C</span><span>💧 ${p.humidOn}–${p.humidOff}%</span></div></div>`;}).join('');}
-}
+let toastTimer=null;
+function showToast(msg){const t=el('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
 
 // ====================================================================
-//  ИНИЦИАЛИЗАЦИЯ
+//  BOOT
 // ====================================================================
-const app = new SmartGreenhouseApp();
-window.switchTab=(tab)=>app.switchTab(tab);
-window.toggleAuto=()=>app.toggleAuto();
-window.setSeason=(s)=>app.setSeason(s);
-window.adj=(key,delta)=>app.adjustCfg(key,delta);
-window.resetSettings=()=>app.resetSettings();
-window.clearLogs=()=>app.clearLogs();
-window.manualToggle=(dev)=>app.autoCtrl.manualToggle(dev);
-window.waterAll=()=>app.autoCtrl.waterAll();
-window.setLed=(ch,v)=>app.setLed(ch,v);
-window.clearAlarms=()=>app.alarmMgr.dismissAll();
-window.dismissAllAlarms=()=>app.alarmMgr.dismissAll();
-window.dismissAlarm=(id)=>app.alarmMgr.clear(id);
-window.toggleAlarmPanel=()=>{window._alarmPanelOpen=!window._alarmPanelOpen;const panel=el('alarm-panel');if(panel)panel.classList.toggle('open',window._alarmPanelOpen);};
-window.onRegionChange=()=>app.updateLighting();
-window.onCropChange=()=>{app.state.cfg.crop=el('crop-sel').value;app.updateLighting();};
-window.onCropPresetChange=()=>{const v=el('crop-select').value;app.applyCropPreset(v);};
-window.showToast=(msg)=>app._showToast(msg);
-window.alarmMgr=app.alarmMgr;
-window.autoCtrl=app.autoCtrl;
-window.S={cfg:app.state.cfg};
-window._alarmPanelOpen=false;
-console.log('🌿 Умная Теплица — Кишинёв, Молдова — Погода OpenWeatherMap');
+function boot() {
+  state.initHistory();
+  state.addLog('✅ Система запущена (Кишинёв, Молдова)','ok');
+  state.addLog('🤖 Авторежим активен','auto');
+  setSeason('summer');
+  updateSettingsUI();
+  renderCropPresetCards();
+  updateUI();
+  updateLightingPage();
+  fetchWeather();
+  setInterval(fetchWeather, 10*60*1000);
+  setInterval(()=>{state.simulate();runAuto();checkAlarms();updateUI();},2000);
+
+  // Показать модал если IP не задан
+  if (espIp) {
+    setT('esp-ip-display', espIp);
+    updateEspCodeHint();
+    startEspPolling();
+  } else {
+    setTimeout(openEspModal, 800);
+  }
+}
+
+boot();
 </script>
 </body>
 </html>
