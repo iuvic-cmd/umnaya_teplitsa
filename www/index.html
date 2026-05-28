@@ -67,6 +67,9 @@
       <div class="esp-label" id="esp-label">ESP32 не подключён</div>
       <div class="esp-sub"   id="esp-sub">Нажмите «Настроить» для подключения</div>
     </div>
+    <!-- Кнопка «Повторить» — видна только при status=error -->
+    <button class="esp-btn" id="esp-retry-btn"
+            onclick="retryEsp()" style="display:none">🔄 Повторить</button>
     <button class="esp-btn" onclick="openEspModal()">Настроить</button>
   </div>
 
@@ -144,7 +147,6 @@
   ════════════════════════════════════════════ -->
   <div class="page active" id="page-dashboard">
 
-    <!-- Показатели -->
     <div class="card">
       <div class="card-head">
         <span class="card-title">ПОКАЗАТЕЛИ ТЕПЛИЦЫ</span>
@@ -174,7 +176,6 @@
       </div>
     </div>
 
-    <!-- Ручное управление -->
     <div class="card">
       <div class="card-head">
         <span class="card-title">РУЧНОЕ УПРАВЛЕНИЕ</span>
@@ -187,7 +188,6 @@
       </div>
     </div>
 
-    <!-- Состояние систем -->
     <div class="card">
       <div class="card-head"><span class="card-title">СОСТОЯНИЕ СИСТЕМ</span></div>
       <div style="display:flex;flex-direction:column;gap:5px">
@@ -199,7 +199,6 @@
       </div>
     </div>
 
-    <!-- События -->
     <div class="card">
       <div class="card-head">
         <span class="card-title">СОБЫТИЯ</span>
@@ -289,7 +288,6 @@
   ════════════════════════════════════════════ -->
   <div class="page" id="page-climate">
 
-    <!-- Целевые значения -->
     <div class="card">
       <div class="card-head">
         <span class="card-title">ЦЕЛЕВЫЕ ЗНАЧЕНИЯ</span>
@@ -307,7 +305,6 @@
       </div>
     </div>
 
-    <!-- Вентиляция -->
     <div class="card">
       <div class="card-head">
         <span class="card-title">ВЕНТИЛЯЦИЯ</span>
@@ -326,7 +323,6 @@
       </div>
     </div>
 
-    <!-- Отопление -->
     <div class="card">
       <div class="card-head"><span class="card-title">ОТОПЛЕНИЕ</span></div>
       <div class="crow">
@@ -341,7 +337,6 @@
       </div>
     </div>
 
-    <!-- Увлажнение -->
     <div class="card">
       <div class="card-head"><span class="card-title">УВЛАЖНЕНИЕ</span></div>
       <div class="crow">
@@ -393,7 +388,6 @@
   ════════════════════════════════════════════ -->
   <div class="page" id="page-lighting">
 
-    <!-- Текущее -->
     <div class="card">
       <div class="card-head"><span class="card-title">ТЕКУЩЕЕ</span></div>
       <div class="mg">
@@ -408,14 +402,15 @@
       </div>
     </div>
 
-    <!-- Регион и культура -->
     <div class="card">
       <div class="card-head"><span class="card-title">РЕГИОН И КУЛЬТУРА</span></div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <div>
           <div class="set-label">РЕГИОН</div>
           <select class="sel" id="region-sel" onchange="onRegionChange()">
-            <option value="chisinau" selected>Кишинёв, Молдова (47.0°N)</option>
+            <!-- ↓ Гидигич первым и selected по умолчанию -->
+            <option value="gidighici" selected>Гидигич, Молдова (47.1°N)</option>
+            <option value="chisinau">Кишинёв, Молдова (47.0°N)</option>
             <option value="moscow">Москва (55.7°N)</option>
             <option value="spb">Санкт-Петербург (59.9°N)</option>
             <option value="krasnodar">Краснодар (45.0°N)</option>
@@ -444,7 +439,6 @@
       </div>
     </div>
 
-    <!-- Расчёт фотопериода -->
     <div class="card">
       <div class="card-head"><span class="card-title">РАСЧЁТ ФОТОПЕРИОДА</span></div>
       <div class="photo-result">
@@ -471,7 +465,6 @@
         <span class="cam-rec">REC</span>
       </div>
 
-      <!-- Главный вид -->
       <div class="cam-main">
         <img id="cm-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover"/>
         <div class="cam-main-ph" id="cm-ph">
@@ -484,10 +477,7 @@
         </div>
       </div>
 
-      <!-- Миниатюры (заполняются JS) -->
       <div class="cam-grid" id="cam-thumbs"></div>
-
-      <!-- Настройка URL потоков (заполняется JS) -->
       <div id="cam-settings"></div>
     </div>
 
@@ -498,7 +488,6 @@
   ════════════════════════════════════════════ -->
   <div class="page" id="page-settings">
 
-    <!-- ESP32 -->
     <div class="card">
       <div class="card-head"><span class="card-title">📡 ESP32 ПОДКЛЮЧЕНИЕ</span></div>
 
@@ -523,14 +512,12 @@
         </div>
       </div>
 
-      <!-- Arduino код -->
       <div class="esp-code-block">
         <div class="esp-code-title">📋 КОД ДЛЯ ESP32 (Arduino IDE):</div>
         <div class="esp-code-content" id="esp-code-hint"></div>
       </div>
     </div>
 
-    <!-- Пресеты культур -->
     <div class="card">
       <div class="card-head"><span class="card-title">🌱 РЕЖИМЫ КУЛЬТУР</span></div>
       <div style="font-size:10px;color:var(--muted);margin-bottom:8px">
@@ -539,7 +526,6 @@
       <div class="crop-preset-grid" id="crop-preset-grid"></div>
     </div>
 
-    <!-- Климатические пороги -->
     <div class="card">
       <div class="card-head"><span class="card-title">⚙️ КЛИМАТ — ПОРОГИ</span></div>
 
@@ -609,7 +595,6 @@
       </div>
     </div>
 
-    <!-- Система -->
     <div class="card">
       <div class="card-head"><span class="card-title">⚙️ СИСТЕМА</span></div>
       <div class="g2">
@@ -617,7 +602,7 @@
         <button class="btn btn-ghost" onclick="resetSettings()">↺ Сброс настр.</button>
       </div>
       <div style="margin-top:10px;font-size:10px;color:var(--muted);text-align:center">
-        Умная Теплица v4.0 · ESP32 + DHT22 + DS18B20 + BMP280
+        Умная Теплица v4.1 · ESP32 + DHT22 + DS18B20 + BMP280
       </div>
     </div>
 
