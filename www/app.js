@@ -1,7 +1,9 @@
 /**
- * Умная Теплица v4.0 — app.js
- * Архитектура: EventEmitter + модульные классы
- * Исправлены все ошибки v1/v2, добавлен ESP32Service, WeatherService с fallback
+ * Умная Теплица v4.1 — app.js
+ * Исправления v4.1:
+ *   - ESP32: остановка опроса после MAX_FAILS ошибок (нет бесконечного цикла)
+ *   - ESP32: экспоненциальная задержка перед остановкой не нужна — просто стоп
+ *   - Добавлен регион Гидигич (47.07°N 28.82°E) с привязкой к реальной погоде
  */
 
 'use strict';
@@ -24,14 +26,15 @@ const setW  = (id, p) => { const e = el(id); if (e) e.style.width = Math.round(c
 const WEATHER_API_KEY = 'ecff0695fb86204bc7154641eb257cad';
 
 const REGIONS = {
-  chisinau:   { name: 'Кишинёв',         lat: 47.01, lon: 28.86 },
-  moscow:     { name: 'Москва',           lat: 55.75, lon: 37.62 },
-  spb:        { name: 'Санкт-Петербург',  lat: 59.95, lon: 30.32 },
-  krasnodar:  { name: 'Краснодар',        lat: 45.03, lon: 38.97 },
-  sochi:      { name: 'Сочи',             lat: 43.58, lon: 39.72 },
-  minsk:      { name: 'Минск',            lat: 53.90, lon: 27.57 },
-  kyiv:       { name: 'Киев',             lat: 50.45, lon: 30.52 },
-  almaty:     { name: 'Алматы',           lat: 43.26, lon: 76.95 },
+  gidighici:  { name: 'Гидигич',          lat: 47.07, lon: 28.82 },   // ← добавлено
+  chisinau:   { name: 'Кишинёв',           lat: 47.01, lon: 28.86 },
+  moscow:     { name: 'Москва',            lat: 55.75, lon: 37.62 },
+  spb:        { name: 'Санкт-Петербург',   lat: 59.95, lon: 30.32 },
+  krasnodar:  { name: 'Краснодар',         lat: 45.03, lon: 38.97 },
+  sochi:      { name: 'Сочи',              lat: 43.58, lon: 39.72 },
+  minsk:      { name: 'Минск',             lat: 53.90, lon: 27.57 },
+  kyiv:       { name: 'Киев',              lat: 50.45, lon: 30.52 },
+  almaty:     { name: 'Алматы',            lat: 43.26, lon: 76.95 },
 };
 
 const CROPS = {
@@ -67,12 +70,11 @@ const DEFAULT_CFG = {
   humidOn:65,  humidOff:80,  co2Alert:1500,
   soilMin:55,  waterSec:45,
   season:'summer', autoMode:true,
-  region:'chisinau', crop:'tomato',
+  region:'gidighici', crop:'tomato',   // ← Гидигич по умолчанию
   pollInterval:3,
   notifyAlarms:true, notifyWarns:true, vibrate:true,
 };
 
-/** Ограничения значений параметров */
 const CFG_BOUNDS = {
   heaterOn:[5,35],  heaterOff:[10,40],
   fanOn:[20,45],    fanOff:[15,42],
@@ -89,10 +91,8 @@ const RU_DAYS   = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 // ====================================================================
 class EventEmitter {
   constructor() { this._l = {}; }
-
   on(e, fn)  { (this._l[e] = this._l[e] || []).push(fn); }
   off(e, fn) { if (this._l[e]) this._l[e] = this._l[e].filter(f => f !== fn); }
-
   emit(e, ...args) {
     (this._l[e] || []).forEach(fn => {
       try { fn(...args); } catch(err) { console.error('[Bus]', e, err); }
@@ -101,10 +101,9 @@ class EventEmitter {
 }
 
 // ====================================================================
-// LIGHTING CALCULATOR  (астрономические расчёты)
+// LIGHTING CALCULATOR
 // ====================================================================
 class LightingCalculator {
-  /** Длина светового дня в часах для заданной широты и даты */
   static calcDayLength(lat, date = new Date()) {
     const doy = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 86400000);
     const P   = Math.asin(0.39795 *
@@ -117,14 +116,12 @@ class LightingCalculator {
     return Math.max(0, Math.min(24, Math.round(D * 10) / 10));
   }
 
-  /** Время восхода / заката */
   static calcSunTimes(lat, date = new Date()) {
     const dl = this.calcDayLength(lat, date);
     const noon = 13, half = dl / 2;
     return { rise: noon - half, set: noon + half, dl };
   }
 
-  /** Десятичные часы → HH:MM */
   static hm(h) {
     let hh = Math.floor(h), mm = Math.round((h - hh) * 60);
     if (mm === 60) { hh++; mm = 0; }
@@ -137,7 +134,6 @@ class LightingCalculator {
 // ====================================================================
 class StateManager {
   constructor() {
-    // Датчики
     this.tempAir    = 24.5;
     this.tempSoil   = 19.2;
     this.humidity   = 65;
@@ -148,21 +144,17 @@ class StateManager {
     this.waterLvl   = 78;
     this.condensate = 45;
 
-    // Устройства
     this.heater     = false;
     this.fan        = false;
     this.humidifier = false;
     this.pumps      = [false, false, false, false];
     this.pumpTimers = [null,  null,  null,  null];
 
-    // История для спарклайнов (последние 30 точек)
     this.hist = { temp:[], hum:[], co2:[], lux:[] };
 
-    // Аварии
     this.alarms     = [];
     this.alarmIdSet = {};
 
-    // Камеры
     this.cameras = [
       { name:'CAM 1', label:'Вход',    url:'' },
       { name:'CAM 2', label:'Грядки',  url:'' },
@@ -171,30 +163,22 @@ class StateManager {
     ];
     this.selCam = 0;
 
-    // Конфиг
     this.cfg = { ...DEFAULT_CFG };
 
-    // Лог событий
     this.logs = [];
 
-    // Уличная погода (заполняется WeatherService)
     this.outdoor = null;
   }
 
-  /**
-   * Симуляция датчиков.
-   * Если ESP32 подключён — не трогаем tempAir и humidity (реальные данные).
-   */
   simulate(espConnected = false) {
     if (!espConnected) {
       this.tempAir  = rndn(clamp(this.tempAir  + rnd(-0.3,  0.3),  5,  45), 1);
       this.humidity = clamp(Math.round(this.humidity + rnd(-1.5, 1.5)), 20, 100);
     }
-    // CO₂, свет, почва — всегда симулируем (нет датчика на ESP32 базовой версии)
-    this.co2      = clamp(Math.round(this.co2  + rnd(-20,   20)),    300, 2500);
-    this.lux      = clamp(Math.round(this.lux  + rnd(-1000, 1000)),    0, 100000);
-    this.soil[0]  = clamp(Math.round(this.soil[0] + rnd(-1,  1)),     5, 100);
-    this.soil[3]  = clamp(Math.round(this.soil[3] + rnd(-1.5, 1.5)),  5, 100);
+    this.co2     = clamp(Math.round(this.co2  + rnd(-20,   20)),    300, 2500);
+    this.lux     = clamp(Math.round(this.lux  + rnd(-1000, 1000)),    0, 100000);
+    this.soil[0] = clamp(Math.round(this.soil[0] + rnd(-1,  1)),     5, 100);
+    this.soil[3] = clamp(Math.round(this.soil[3] + rnd(-1.5, 1.5)),  5, 100);
 
     const push = (a, v) => { a.push(v); if (a.length > 30) a.shift(); };
     push(this.hist.temp, this.tempAir);
@@ -224,7 +208,6 @@ class AlarmManager {
     this.bus   = bus;
   }
 
-  /** Добавить аварию (идемпотентно по id) */
   add(id, text, sev) {
     if (this.state.alarmIdSet[id]) return;
     this.state.alarmIdSet[id] = true;
@@ -234,7 +217,6 @@ class AlarmManager {
     this.bus.emit('alarms:changed');
   }
 
-  /** Снять конкретную аварию */
   clear(id) {
     if (!this.state.alarmIdSet[id]) return;
     this.state.alarmIdSet[id] = false;
@@ -242,25 +224,21 @@ class AlarmManager {
     this.bus.emit('alarms:changed');
   }
 
-  /** Снять все */
   dismissAll() {
     this.state.alarms     = [];
     this.state.alarmIdSet = {};
     this.bus.emit('alarms:changed');
   }
 
-  /** Проверить все условия аварий */
   checkAll() {
     const s = this.state, c = s.cfg;
     const chk = (id, cond, text, sev) => cond ? this.add(id, text, sev) : this.clear(id);
 
-    // Критические
     chk('temp_hi',    s.tempAir > 38,                           `🔴 Перегрев: ${s.tempAir}°C!`,         'crit');
     chk('temp_lo',    s.tempAir < 5,                            `🔴 Крит. низкая темп.: ${s.tempAir}°C`, 'crit');
     chk('water_crit', s.waterLvl < 8,                           `🔴 Бак пуст! ${s.waterLvl}%`,           'crit');
     chk('pump_dry',   s.pumps.some(Boolean) && s.waterLvl < 5, '🔴 Насос вхолостую! Бак пуст',          'crit');
 
-    // Предупреждения
     if (c.notifyWarns) {
       chk('co2',       s.co2 > c.co2Alert,             `🟡 CO₂ высокий: ${s.co2} ppm (>${c.co2Alert})`, 'warn');
       chk('water_low', s.waterLvl < 20 && s.waterLvl >= 8, `🟡 Бак низкий: ${s.waterLvl}%`,            'warn');
@@ -276,16 +254,14 @@ class AutoController {
   constructor(state, bus) {
     this.state          = state;
     this.bus            = bus;
-    this.manualOverride = {};   // { heater:bool, fan:bool, humidifier:bool }
-    this._thr           = {};   // троттлинг логов
+    this.manualOverride = {};
+    this._thr           = {};
   }
 
-  /** Основной цикл автоматики */
   run() {
     if (!this.state.cfg.autoMode) return;
     const s = this.state, c = s.cfg;
 
-    // ── Отопление
     if (s.tempAir < c.heaterOn && !s.heater) {
       s.heater = true;
       this._tlog('h_on', `🤖 Авто: Обогрев ВКЛ (${s.tempAir}°C < ${c.heaterOn}°C)`, 60000);
@@ -294,7 +270,6 @@ class AutoController {
       s.addLog(`🤖 Авто: Обогрев ВЫКЛ (${s.tempAir}°C > ${c.heaterOff}°C)`, 'auto');
     }
 
-    // ── Вентилятор
     if (s.tempAir > c.fanOn && !s.fan) {
       s.fan = true;
       s.addLog(`🤖 Авто: Вентилятор ВКЛ (${s.tempAir}°C)`, 'auto');
@@ -303,7 +278,6 @@ class AutoController {
       s.addLog('🤖 Авто: Вентилятор ВЫКЛ', 'auto');
     }
 
-    // ── Увлажнитель
     if (s.humidity < c.humidOn && !s.humidifier) {
       s.humidifier = true;
       this._tlog('hm_on', `🤖 Авто: Увлажнитель ВКЛ (${s.humidity}%)`, 60000);
@@ -312,13 +286,11 @@ class AutoController {
       s.addLog(`🤖 Авто: Увлажнитель ВЫКЛ (${s.humidity}%)`, 'auto');
     }
 
-    // ── Автополив
     s.soil.forEach((v, i) => {
       if (v < c.soilMin && !s.pumps[i]) this._startPump(i, true);
     });
   }
 
-  /** Ручное переключение устройства (инвертирует состояние) */
   manualToggle(dev) {
     const s = this.state;
     s[dev] = !s[dev];
@@ -329,14 +301,12 @@ class AutoController {
     this.bus.emit('ui:update');
   }
 
-  /** Ручной запуск полива грядки */
   startPumpManual(i) {
     if (this.state.pumps[i]) return;
     this._startPump(i, false);
     this.bus.emit('toast:show', `💦 Полив Грядка ${i + 1} запущен`);
   }
 
-  /** Остановка полива грядки */
   stopPump(i) {
     const s = this.state;
     if (!s.pumps[i]) return;
@@ -347,13 +317,10 @@ class AutoController {
     this.bus.emit('ui:update');
   }
 
-  /** Полить все грядки */
   waterAll() {
     for (let i = 0; i < 4; i++) if (!this.state.pumps[i]) this.startPumpManual(i);
     this.bus.emit('toast:show', '💦 Полив всех грядок запущен');
   }
-
-  // ── Приватные ──
 
   _startPump(i, isAuto) {
     const s = this.state;
@@ -369,7 +336,6 @@ class AutoController {
     this.bus.emit('ui:update');
   }
 
-  /** Троттлинг повторяющихся лог-записей */
   _tlog(key, msg, ms) {
     if (!this._thr[key] || Date.now() - this._thr[key] > ms) {
       this.state.addLog(msg, 'auto');
@@ -387,7 +353,6 @@ class CameraManager {
     this.bus   = bus;
   }
 
-  /** Выбрать активную камеру */
   select(index) {
     this.state.selCam = index;
     const cam = this.state.cameras[index];
@@ -403,7 +368,6 @@ class CameraManager {
     this.bus.emit('cameras:render');
   }
 
-  /** Применить URL потока для камеры */
   applyUrl(index, url) {
     this.state.cameras[index].url = url.trim();
     this.select(index);
@@ -413,7 +377,7 @@ class CameraManager {
 }
 
 // ====================================================================
-// DASHBOARD RENDERER — всё взаимодействие с DOM
+// DASHBOARD RENDERER
 // ====================================================================
 class DashboardRenderer {
   constructor(state, bus) {
@@ -421,7 +385,6 @@ class DashboardRenderer {
     this.bus   = bus;
   }
 
-  /** Полное обновление интерфейса */
   updateAll() {
     this._clock();
     this._dashboard();
@@ -434,7 +397,6 @@ class DashboardRenderer {
     this._alarmUI();
   }
 
-  /** Перерисовать все спарклайны */
   drawSparklines() {
     this._spark('sp-temp', this.state.hist.temp, '#00ff7f');
     this._spark('sp-hum',  this.state.hist.hum,  '#00b4fc');
@@ -442,7 +404,6 @@ class DashboardRenderer {
     this._spark('sp-lux',  this.state.hist.lux,  '#fbbf24');
   }
 
-  /** Обновить UI сезона и все зависимые элементы */
   updateSeasonUI() {
     const season = this.state.cfg.season, sum = season === 'summer';
     const bar = el('season-bar');
@@ -451,18 +412,15 @@ class DashboardRenderer {
     const bs = el('sbtn-summer'), bw = el('sbtn-winter');
     if (bs) bs.className = 'season-btn' + (sum ? ' active summer' : '');
     if (bw) bw.className = 'season-btn' + (sum ? '' : ' active winter');
-    // Вентиляция
     const vmb = el('vent-mode-badge');
     if (vmb) { vmb.textContent = sum ? 'ЛЕТО' : 'ЗИМА'; vmb.className = 'badge ' + (sum ? 'b-warn' : 'b-info'); }
     setT('vent-mode-hint', sum ? 'Забор свежего воздуха с улицы' : 'Рециркуляция внутри теплицы');
-    // Климат: целевые значения
     const lb = el('clim-season-lbl'); if (lb) lb.textContent = sum ? 'ЛЕТО' : 'ЗИМА';
     setH('clim-ttarget', (sum ? '22' : '18') + '<span class="munit">°C</span>');
     setH('clim-htarget', '70<span class="munit">%</span>');
     this.updateClimateHints();
   }
 
-  /** Обновить подсказки порогов в карточках климата */
   updateClimateHints() {
     const c = this.state.cfg;
     setT('heat-hint',  `Вкл при <${c.heaterOn}°C, Выкл при >${c.heaterOff}°C`);
@@ -470,7 +428,6 @@ class DashboardRenderer {
     setT('humid-hint', `Вкл при <${c.humidOn}%, Выкл при >${c.humidOff}%`);
   }
 
-  /** Обновить виджет уличной погоды */
   updateWeatherUI() {
     const w = this.state.outdoor;
     if (!w) {
@@ -487,7 +444,7 @@ class DashboardRenderer {
     setT('ow-updated', 'Обновлено: ' + w.city);
   }
 
-  // ── Приватные методы ──
+  // ── Приватные ──
 
   _dashboard() {
     const s = this.state;
@@ -682,7 +639,6 @@ class WeatherService {
     this.bus   = bus;
   }
 
-  /** Запустить: первый запрос сразу, затем каждые 10 минут */
   start() {
     this._fetch();
     setInterval(() => this._fetch(), 10 * 60 * 1000);
@@ -714,7 +670,6 @@ class WeatherService {
     }
   }
 
-  /** Open-Meteo — бесплатно, без токена */
   async _fetchFallback(reg) {
     try {
       const url = `https://api.open-meteo.com/v1/forecast` +
@@ -773,7 +728,7 @@ class WeatherService {
 }
 
 // ====================================================================
-// ESP32 SERVICE
+// ESP32 SERVICE  ← ИСПРАВЛЕНО v4.1
 // ====================================================================
 class ESP32Service {
   constructor(state, bus) {
@@ -784,34 +739,47 @@ class ESP32Service {
     this.failCount   = 0;
     this.pollSeconds = 3;
     this._interval   = null;
-    this.MAX_FAILS   = 3;
+    this.MAX_FAILS   = 3;   // после 3 ошибок подряд — остановить опрос
   }
 
-  /** Задать IP и запустить опрос */
   setIp(ip) {
     this.ip = ip.trim();
     if (this.ip) localStorage.setItem('esp32_ip', this.ip);
     this.startPolling();
   }
 
-  /** Изменить интервал опроса (секунды, 1–30) */
   setPollSeconds(s) {
     this.pollSeconds = clamp(Math.round(s), 1, 30);
     if (this.ip) this.startPolling();
   }
 
-  /** (Пере)запустить цикл опроса */
   startPolling() {
     if (this._interval) clearInterval(this._interval);
-    this.failCount = 0;
+    this._interval = null;
+    this.failCount  = 0;
+    this.connected  = false;
     this.bus.emit('esp:status', 'connecting');
-    this._fetch();
-    this._interval = setInterval(() => this._fetch(), this.pollSeconds * 1000);
+    // Первый вызов через 300 мс (не блокировать загрузку)
+    setTimeout(() => {
+      this._fetch();
+      // Запускаем интервал только если ещё не остановлен вручную
+      if (this.ip) {
+        this._interval = setInterval(() => this._fetch(), this.pollSeconds * 1000);
+      }
+    }, 300);
   }
 
-  /** Остановить опрос */
   stopPolling() {
     if (this._interval) { clearInterval(this._interval); this._interval = null; }
+  }
+
+  /**
+   * Повторить подключение после ошибки (вызывается кнопкой «Повторить» в UI)
+   */
+  retry() {
+    if (!this.ip) { this.bus.emit('esp:modal:open'); return; }
+    this.startPolling();
+    this.bus.emit('toast:show', '🔄 Повтор подключения к ESP32...');
   }
 
   async _fetch() {
@@ -823,7 +791,6 @@ class ESP32Service {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const d = await res.json();
 
-      // Применяем только валидные числа
       if (typeof d.temp     === 'number' && isFinite(d.temp))     this.state.tempAir  = Math.round(d.temp * 10) / 10;
       if (typeof d.humidity === 'number' && isFinite(d.humidity)) this.state.humidity = Math.round(d.humidity);
       if (typeof d.pressure === 'number' && isFinite(d.pressure)) this.state.pressure = Math.round(d.pressure);
@@ -841,16 +808,23 @@ class ESP32Service {
     } catch {
       this.connected = false;
       this.failCount++;
-      if (this.failCount === this.MAX_FAILS)
-        this.state.addLog(`❌ ESP32 не отвечает (${this.ip})`, 'err');
-      if (this.failCount >= this.MAX_FAILS)
+
+      if (this.failCount === this.MAX_FAILS) {
+        // Записываем ошибку ОДИН РАЗ и останавливаем опрос
+        this.state.addLog(
+          `❌ ESP32 (${this.ip}) не отвечает — опрос остановлен. Нажмите «Повторить»`,
+          'err'
+        );
+        this.stopPolling();
         this.bus.emit('esp:status', 'error');
+      }
+      // Если failCount < MAX_FAILS — молча продолжаем; не спамим логи
     }
   }
 }
 
 // ====================================================================
-// SMART GREENHOUSE APP — главный контроллер
+// SMART GREENHOUSE APP
 // ====================================================================
 class SmartGreenhouseApp {
   constructor() {
@@ -869,24 +843,20 @@ class SmartGreenhouseApp {
     this._boot();
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // BOOT
-  // ══════════════════════════════════════════════════════════════════
   _boot() {
     this.state.initHistory();
-    this.state.addLog('✅ Система запущена', 'ok');
+    this.state.addLog('✅ Система запущена v4.1', 'ok');
     this.state.addLog('🤖 Авторежим активен', 'auto');
     this.state.addLog('📡 Ожидание подключения ESP32...', 'warn');
 
-    // ── Подписки на события шины
     this.bus.on('ui:update',       ()  => { this.renderer.updateAll(); this.renderer.drawSparklines(); });
     this.bus.on('alarms:changed',  ()  => this.renderer._alarmUI());
     this.bus.on('toast:show',      msg => this._toast(msg));
     this.bus.on('cameras:render',  ()  => this._renderCameras());
     this.bus.on('weather:updated', ()  => this.renderer.updateWeatherUI());
     this.bus.on('esp:status',      s   => this._updateEspUI(s));
+    this.bus.on('esp:modal:open',  ()  => this.openEspModal());
 
-    // ── Начальный рендер
     this._applySeason(this.state.cfg.season, false);
     this._updateSettingsUI();
     this._renderCropPresetCards();
@@ -896,7 +866,6 @@ class SmartGreenhouseApp {
     this.renderer.drawSparklines();
     this._updateLightingPage();
 
-    // ── ESP32: либо начинаем опрос, либо показываем модал
     if (this.esp32.ip) {
       setT('esp-ip-display', this.esp32.ip);
       this.esp32.startPolling();
@@ -904,10 +873,8 @@ class SmartGreenhouseApp {
       setTimeout(() => this.openEspModal(), 800);
     }
 
-    // ── Погода
     this.weatherSvc.start();
 
-    // ── Главный тик: 2 сек
     setInterval(() => {
       this.state.simulate(this.esp32.connected);
       this.autoCtrl.run();
@@ -917,9 +884,6 @@ class SmartGreenhouseApp {
     }, 2000);
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // НАВИГАЦИЯ
-  // ══════════════════════════════════════════════════════════════════
   switchTab(tab) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
@@ -930,12 +894,7 @@ class SmartGreenhouseApp {
     if (tab === 'settings') { this._renderCropPresetCards(); this._updateEspCodeHint(); }
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // СЕЗОН
-  // ══════════════════════════════════════════════════════════════════
-  setSeason(s) {
-    this._applySeason(s, true);
-  }
+  setSeason(s) { this._applySeason(s, true); }
 
   _applySeason(s, withToast) {
     this.state.cfg.season = s;
@@ -944,9 +903,6 @@ class SmartGreenhouseApp {
     if (withToast) this._toast(s === 'summer' ? '☀️ ЛЕТО' : '❄️ ЗИМА');
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // АВТОРЕЖИМ
-  // ══════════════════════════════════════════════════════════════════
   toggleAuto() {
     const c = el('tog-auto');
     if (!c) return;
@@ -958,9 +914,6 @@ class SmartGreenhouseApp {
     this._toast('Авторежим ' + (on ? 'включён' : 'выключён'));
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // НАСТРОЙКИ
-  // ══════════════════════════════════════════════════════════════════
   adjustCfg(key, delta) {
     if (key === 'pollInterval') {
       this.esp32.setPollSeconds(this.esp32.pollSeconds + delta);
@@ -989,9 +942,6 @@ class SmartGreenhouseApp {
     this._toast('Лог очищен');
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // ПРЕСЕТЫ КУЛЬТУР
-  // ══════════════════════════════════════════════════════════════════
   applyCropPreset(cropKey) {
     const p = CROP_PRESETS[cropKey];
     if (!p) return;
@@ -1003,7 +953,6 @@ class SmartGreenhouseApp {
       co2Alert: p.co2Alert, soilMin:   p.soilMin, waterSec: p.waterSec,
       crop:     cropKey,
     });
-    // Синхронизируем все select с новым cropKey
     ['crop-select', 'crop-sel'].forEach(id => {
       const s = el(id); if (s) s.value = cropKey;
     });
@@ -1018,15 +967,14 @@ class SmartGreenhouseApp {
     this._toast(`🌱 ${p.name} активирован`);
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // ОСВЕЩЕНИЕ
-  // ══════════════════════════════════════════════════════════════════
   updateLighting() {
     const regSel  = el('region-sel');
     const cropSel = el('crop-sel');
     if (regSel)  this.state.cfg.region = regSel.value;
     if (cropSel) this.state.cfg.crop   = cropSel.value;
     this._updateLightingPage();
+    // Обновить виджет погоды для нового региона
+    this.weatherSvc.start && this.weatherSvc._fetch();
   }
 
   _updateLightingPage() {
@@ -1050,6 +998,10 @@ class SmartGreenhouseApp {
     setT('pr-supp',    supp > 0 ? rndn(supp, 1) + ' ч' : 'Не нужна ✓');
     setH('l-photo',    rndn(sun.dl, 1) + '<span class="munit">ч</span>');
 
+    // Синхронизировать select региона
+    const rs = el('region-sel');
+    if (rs && rs.value !== regKey) rs.value = regKey;
+
     const sched = el('led-schedule');
     if (!sched) return;
 
@@ -1067,9 +1019,6 @@ class SmartGreenhouseApp {
     }
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // КАМЕРЫ
-  // ══════════════════════════════════════════════════════════════════
   _renderCameras() {
     const thumbs   = el('cam-thumbs');
     const settings = el('cam-settings');
@@ -1108,9 +1057,8 @@ class SmartGreenhouseApp {
     }
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // ESP32 UI
-  // ══════════════════════════════════════════════════════════════════
+  // ── ESP32 UI ──
+
   openEspModal() {
     const inp = el('esp-ip-input'); if (inp) inp.value = this.esp32.ip;
     const m   = el('modal-esp');   if (m)   m.classList.remove('hidden');
@@ -1139,14 +1087,18 @@ class SmartGreenhouseApp {
     const label = el('esp-label');
     const sub   = el('esp-sub');
     const badge = el('sensor-src-badge');
+    const retry = el('esp-retry-btn');   // кнопка «Повторить» (только в error)
     if (!bar) return;
 
-    bar.className = 'esp-bar ' + {
+    bar.className = 'esp-bar ' + ({
       connected:    'connected',
       connecting:   'connecting',
       error:        'disconnected',
       disconnected: 'disconnected',
-    }[status] || 'disconnected';
+    }[status] || 'disconnected');
+
+    // Показываем / прячем кнопку «Повторить»
+    if (retry) retry.style.display = status === 'error' ? 'inline-flex' : 'none';
 
     switch (status) {
       case 'connected':
@@ -1160,8 +1112,8 @@ class SmartGreenhouseApp {
         if (badge) { badge.textContent = 'SIM'; badge.className = 'badge b-warn'; }
         break;
       case 'error':
-        if (label) label.textContent = '❌ ESP32 недоступен';
-        if (sub)   sub.textContent   = `Нет ответа · ${this.esp32.failCount} ошибок`;
+        if (label) label.textContent = `❌ ESP32 недоступен (${this.esp32.ip})`;
+        if (sub)   sub.textContent   = `Опрос остановлен · нажмите «Повторить»`;
         if (badge) { badge.textContent = 'SIM'; badge.className = 'badge b-warn'; }
         break;
       default:
@@ -1188,7 +1140,6 @@ WebServer server(80);<br><br>
 void handleData() {<br>
 &nbsp;&nbsp;float t = dht.readTemperature();<br>
 &nbsp;&nbsp;float h = dht.readHumidity();<br>
-&nbsp;&nbsp;// Добавьте другие датчики сюда<br>
 &nbsp;&nbsp;String j = "{\\"temp\\":" + String(t, 1) +<br>
 &nbsp;&nbsp;&nbsp;&nbsp;",\\"humidity\\":" + String(h, 1) + "}";<br>
 &nbsp;&nbsp;server.sendHeader("Access-Control-Allow-Origin", "*");<br>
@@ -1206,9 +1157,6 @@ void setup() {<br>
 void loop() { server.handleClient(); }`.trim();
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // ВНУТРЕННИЕ ХЕЛПЕРЫ
-  // ══════════════════════════════════════════════════════════════════
   _updateSettingsUI() {
     ['heaterOn','heaterOff','fanOn','humidOn','humidOff','co2Alert','soilMin','waterSec'].forEach(k => {
       const e = el('sv-' + k); if (e) e.textContent = this.state.cfg[k];
@@ -1254,7 +1202,6 @@ void loop() { server.handleClient(); }`.trim();
 // ====================================================================
 const app = new SmartGreenhouseApp();
 
-// ── Глобальные функции для onclick-атрибутов в HTML ──────────────────
 window.app          = app;
 window.autoCtrl     = app.autoCtrl;
 window.alarmMgr     = app.alarmMgr;
@@ -1278,5 +1225,6 @@ window.toggleAlarmPanel  = ()      => app.toggleAlarmPanel();
 window.openEspModal      = ()      => app.openEspModal();
 window.closeEspModal     = ()      => app.closeEspModal();
 window.saveEspIp         = ()      => app.saveEspIp();
+window.retryEsp          = ()      => app.esp32.retry();   // ← новая кнопка
 
-console.log('🌿 Умная Теплица v4.0 — готово!');
+console.log('🌿 Умная Теплица v4.1 — готово!');
