@@ -1,5 +1,9 @@
 {
   "appId": "com.iuvic.teplitsa",
   "appName": "Умная Теплица",
-  "webDir": "www"
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "allowNavigation": ["t.me"]
+  }
 }
