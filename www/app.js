@@ -1,48 +1,42 @@
 'use strict';
 
-// ========== СОСТОЯНИЕ ==========
 class AppState {
   constructor() {
     this.tempAir   = 0;
     this.humidity  = 0;
-    this.tempSoil  = 0;
     this.lux       = 0;
-    this.soil      = [0, 0, 0, 0];
+    this.soil      = [0, 0];
     this.heater    = false;
     this.fan       = false;
     this.valve     = false;
     this.humidifier = false;
-    this.pumps     = [false, false, false, false];
-    this.light     = false;
+    this.pumps     = [false, false];
     this.logs      = [];
   }
-
   addLog(msg, type = 'info') {
     this.logs.unshift({ msg, type, time: new Date().toLocaleTimeString() });
     if (this.logs.length > 50) this.logs.pop();
   }
 }
 
-// ========== ШИНА СОБЫТИЙ ==========
 class EventBus {
   constructor() { this._events = {}; }
   on(evt, fn) { (this._events[evt] = this._events[evt] || []).push(fn); }
   emit(evt, data) { (this._events[evt] || []).forEach(fn => fn(data)); }
 }
 
-// ========== ПРИЛОЖЕНИЕ ==========
 class App {
   constructor() {
     this.state = new AppState();
     this.bus   = new EventBus();
+    
+    // Автоматически подключаемся к Telegram
     this.esp32 = new TelegramStatusService(this.state, this.bus);
+    this.esp32.startPolling();
     
     this.bus.on('ui:update', () => this.render());
-    this.bus.on('esp:status', (s) => console.log('ESP:', s));
     this.bus.on('toast:show', (msg) => this._toast(msg));
-    
     this.render();
-    this.esp32.startPolling();
   }
 
   _toast(msg) {
@@ -61,30 +55,22 @@ class App {
 
   render() {
     const s = this.state;
-    const html = `
-      <div class="header">
-        <h1>🌿 Умная Теплица</h1>
-        <div class="status-dot ${s.heater ? 'on' : ''}"></div>
-      </div>
-      <div class="sensors">
-        <div class="sensor">🌡 Температура: <b>${s.tempAir.toFixed(1)}°C</b></div>
-        <div class="sensor">💧 Влажность: <b>${s.humidity.toFixed(0)}%</b></div>
-        <div class="sensor">☀️ Освещение: <b>${s.lux} лк</b></div>
-        <div class="sensor">🌱 Почва 1: <b>${s.soil[0]}%</b></div>
-        <div class="sensor">🌱 Почва 2: <b>${s.soil[1]}%</b></div>
-      </div>
-      <div class="controls">
-        <button onclick="window.manualToggle('heater')" class="${s.heater ? 'on' : ''}">🔥 Обогрев</button>
-        <button onclick="window.manualToggle('fan')" class="${s.fan ? 'on' : ''}">🌀 Вентилятор</button>
-        <button onclick="window.manualToggle('humidifier')" class="${s.humidifier ? 'on' : ''}">💨 Увлажнитель</button>
-        <button onclick="window.waterAll()">💦 Полив ВКЛ</button>
-        <button onclick="window.stopPumpRemote()">⏹ Полив ВЫКЛ</button>
-      </div>
-      <div class="logs">
-        ${s.logs.slice(0, 10).map(l => `<div class="log ${l.type}">${l.time} ${l.msg}</div>`).join('')}
+    document.getElementById('app').innerHTML = `
+      <div style="padding:16px;font-family:sans-serif;">
+        <h2>🌿 Умная Теплица</h2>
+        <p>🌡 Температура: <b>${s.tempAir.toFixed(1)}°C</b></p>
+        <p>💧 Влажность: <b>${s.humidity.toFixed(0)}%</b></p>
+        <p>☀️ Освещение: <b>${s.lux} лк</b></p>
+        <p>🌱 Почва 1: <b>${s.soil[0]}%</b></p>
+        <p>🌱 Почва 2: <b>${s.soil[1]}%</b></p>
+        <hr>
+        <button onclick="window.manualToggle('heater')" style="margin:4px;padding:8px 16px;background:${s.heater?'#4CAF50':'#ddd'}">🔥 Обогрев</button>
+        <button onclick="window.manualToggle('fan')" style="margin:4px;padding:8px 16px;background:${s.fan?'#4CAF50':'#ddd'}">🌀 Вентилятор</button>
+        <button onclick="window.manualToggle('humidifier')" style="margin:4px;padding:8px 16px;background:${s.humidifier?'#4CAF50':'#ddd'}">💨 Увлажнитель</button>
+        <button onclick="window.waterAll()" style="margin:4px;padding:8px 16px;background:#2196F3;color:#fff">💦 Полив ВКЛ</button>
+        <button onclick="window.stopPumpRemote()" style="margin:4px;padding:8px 16px;background:#f44336;color:#fff">⏹ Полив ВЫКЛ</button>
       </div>
     `;
-    document.getElementById('app').innerHTML = html;
   }
 }
 
