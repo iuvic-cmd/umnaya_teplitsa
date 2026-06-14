@@ -1,171 +1,91 @@
 'use strict';
 
-// ═══════════════════════════════════════════
-// ЗАМЕНИТЕ НА СВОИ ДАННЫЕ:
-// ═══════════════════════════════════════════
-let token    = localStorage.getItem('tg_token')    || '8899706883:AAEhg-tV6EN6j0HbBzMsdc1HIXoUsghXMWI';
-let chatId   = localStorage.getItem('tg_chatid')   || '5741848306';
-// ═══════════════════════════════════════════
+// ========== СОСТОЯНИЕ ==========
+class AppState {
+  constructor() {
+    this.tempAir   = 0;
+    this.humidity  = 0;
+    this.tempSoil  = 0;
+    this.lux       = 0;
+    this.soil      = [0, 0, 0, 0];
+    this.heater    = false;
+    this.fan       = false;
+    this.valve     = false;
+    this.humidifier = false;
+    this.pumps     = [false, false, false, false];
+    this.light     = false;
+    this.logs      = [];
+  }
 
-let online = false, failCount = 0;
-const MAX_FAILS = 5;
-let pollTimer = null, statusCache = null;
-
-const $ = (id) => document.getElementById(id);
-const $t = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-const $h = (id, v) => { const e = $(id); if (e) e.innerHTML = v; };
-
-let toastT = null;
-function toast(msg) {
-  const el = $('toast');
-  if (!el) return;
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastT);
-  toastT = setTimeout(() => el.classList.remove('show'), 2500);
-}
-
-function fmtNum(v, dec = 1) {
-  return (typeof v === 'number' && isFinite(v)) ? v.toFixed(dec) : '--';
-}
-
-function fmtUptime(sec) {
-  const d = Math.floor(sec / 86400);
-  const h = Math.floor((sec % 86400) / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  if (d > 0) return d + 'д ' + h + 'ч';
-  return h + 'ч ' + m + 'м';
-}
-
-function openTgModal() {
-  $('tg-token').value = token;
-  $('tg-chatid').value = chatId;
-  $('modal-tg').classList.remove('hidden');
-}
-
-function closeTgModal() {
-  $('modal-tg').classList.add('hidden');
-}
-
-function saveTgConfig() {
-  const t = $('tg-token').value.trim();
-  const c = $('tg-chatid').value.trim();
-  if (!t || !c) { toast('⚠️ Введите токен и chat_id'); return; }
-  token = t;
-  chatId = c;
-  localStorage.setItem('tg_token', token);
-  localStorage.setItem('tg_chatid', chatId);
-  closeTgModal();
-  startPolling();
-  toast('✅ Подключено!');
-}
-
-async function fetchStatus() {
-  if (!token || !chatId) return null;
-  const url = `https://api.telegram.org/bot${token}/getChat?chat_id=${chatId}`;
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.description || 'API error');
-    const pinned = data.result?.pinned_message;
-    if (!pinned?.text) throw new Error('Нет закреплённого сообщения');
-    return JSON.parse(pinned.text);
-  } catch (err) {
-    console.warn('[Poll]', err.message);
-    return null;
+  addLog(msg, type = 'info') {
+    this.logs.unshift({ msg, type, time: new Date().toLocaleTimeString() });
+    if (this.logs.length > 50) this.logs.pop();
   }
 }
 
-function updateUI(status) {
-  $h('v-temp', fmtNum(status.temp_air) + '°');
-  $h('v-hum', fmtNum(status.humidity, 0) + '%');
-  $h('v-out', fmtNum(status.temp_out) + '°');
-  
-  const s1 = status.soil_1 ?? 0;
-  const s2 = status.soil_2 ?? 0;
-  $t('v-s1', s1 + '%');
-  $t('v-s2', s2 + '%');
-  $('pb1').style.width = s1 + '%';
-  $('pb2').style.width = s2 + '%';
-  
-  $t('v-lux', (status.lux ?? '--') + ' лк');
-  $t('v-day', status.is_day ? '☀️ День' : '🌙 Ночь');
-  
-  const toggleDev = (id, on) => {
-    const el = $(id);
-    if (!el) return;
-    el.className = 'dev-item' + (on ? ' on' : '');
-    const stateEl = el.querySelector('.dev-state');
-    if (stateEl) stateEl.textContent = on ? 'ВКЛ' : 'ВЫКЛ';
-  };
-  
-  toggleDev('dev-heater', status.heater);
-  toggleDev('dev-fan', status.fan);
-  toggleDev('dev-humid', status.humidifier);
-  toggleDev('dev-valve', status.valve);
-  toggleDev('dev-light', status.light);
-  
-  $t('v-mode', status.mode === 'auto' ? '🤖 Авто' : '🔧 Ручной');
-  $t('v-crop', status.crop || '--');
-  $t('v-season', status.season || '--');
-  $t('v-water', status.water_count ?? '0');
-  $t('v-uptime', fmtUptime(status.uptime || 0));
+// ========== ШИНА СОБЫТИЙ ==========
+class EventBus {
+  constructor() { this._events = {}; }
+  on(evt, fn) { (this._events[evt] = this._events[evt] || []).push(fn); }
+  emit(evt, data) { (this._events[evt] || []).forEach(fn => fn(data)); }
 }
 
-function updateConnectionUI(isOnline) {
-  online = isOnline;
-  const dot = $('hdr-dot');
-  const text = $('hdr-text');
-  if (dot) dot.className = 'hdr-dot' + (isOnline ? ' online' : '');
-  if (text) {
-    text.textContent = isOnline ? 'Онлайн' : 'Нет связи';
-    text.style.color = isOnline ? 'var(--on)' : 'var(--dim)';
+// ========== ПРИЛОЖЕНИЕ ==========
+class App {
+  constructor() {
+    this.state = new AppState();
+    this.bus   = new EventBus();
+    this.esp32 = new TelegramStatusService(this.state, this.bus);
+    
+    this.bus.on('ui:update', () => this.render());
+    this.bus.on('esp:status', (s) => console.log('ESP:', s));
+    this.bus.on('toast:show', (msg) => this._toast(msg));
+    
+    this.render();
+    this.esp32.startPolling();
   }
-}
 
-async function poll() {
-  const status = await fetchStatus();
-  if (status) {
-    statusCache = status;
-    updateUI(status);
-    if (!online) {
-      updateConnectionUI(true);
-      if (failCount > 0) toast('📡 Связь восстановлена');
+  _toast(msg) {
+    let el = document.getElementById('toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'toast';
+      el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;z-index:9999;transition:opacity 0.3s;opacity:0;';
+      document.body.appendChild(el);
     }
-    failCount = 0;
-  } else {
-    failCount++;
-    if (online && failCount >= MAX_FAILS) {
-      updateConnectionUI(false);
-      toast('⚠️ Нет ответа от Telegram');
-    }
-    if (statusCache && failCount < MAX_FAILS) {
-      updateUI(statusCache);
-    }
+    el.textContent = msg;
+    el.style.opacity = '1';
+    clearTimeout(this._toastT);
+    this._toastT = setTimeout(() => el.style.opacity = '0', 2500);
+  }
+
+  render() {
+    const s = this.state;
+    const html = `
+      <div class="header">
+        <h1>🌿 Умная Теплица</h1>
+        <div class="status-dot ${s.heater ? 'on' : ''}"></div>
+      </div>
+      <div class="sensors">
+        <div class="sensor">🌡 Температура: <b>${s.tempAir.toFixed(1)}°C</b></div>
+        <div class="sensor">💧 Влажность: <b>${s.humidity.toFixed(0)}%</b></div>
+        <div class="sensor">☀️ Освещение: <b>${s.lux} лк</b></div>
+        <div class="sensor">🌱 Почва 1: <b>${s.soil[0]}%</b></div>
+        <div class="sensor">🌱 Почва 2: <b>${s.soil[1]}%</b></div>
+      </div>
+      <div class="controls">
+        <button onclick="window.manualToggle('heater')" class="${s.heater ? 'on' : ''}">🔥 Обогрев</button>
+        <button onclick="window.manualToggle('fan')" class="${s.fan ? 'on' : ''}">🌀 Вентилятор</button>
+        <button onclick="window.manualToggle('humidifier')" class="${s.humidifier ? 'on' : ''}">💨 Увлажнитель</button>
+        <button onclick="window.waterAll()">💦 Полив ВКЛ</button>
+        <button onclick="window.stopPumpRemote()">⏹ Полив ВЫКЛ</button>
+      </div>
+      <div class="logs">
+        ${s.logs.slice(0, 10).map(l => `<div class="log ${l.type}">${l.time} ${l.msg}</div>`).join('')}
+      </div>
+    `;
+    document.getElementById('app').innerHTML = html;
   }
 }
 
-function startPolling() {
-  if (pollTimer) clearInterval(pollTimer);
-  if (!token || !chatId) {
-    updateConnectionUI(false);
-    $t('hdr-text', 'Не настроено');
-    return;
-  }
-  updateConnectionUI(false);
-  $t('hdr-text', 'Подключение...');
-  failCount = 0;
-  poll();
-  pollTimer = setInterval(poll, 5000);
-}
-
-window.openTgModal = openTgModal;
-window.closeTgModal = closeTgModal;
-window.saveTgConfig = saveTgConfig;
-
-startPolling();
-console.log('🌿 Умная Теплица v2.8.1 готово!');
+window.app = new App();
