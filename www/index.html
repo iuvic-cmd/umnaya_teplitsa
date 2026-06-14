@@ -2,642 +2,102 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-  <meta name="theme-color" content="#050c07"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
   <title>🌿 Умная Теплица</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════
-     ESP32 MODAL
-══════════════════════════════════════════════ -->
-<div class="modal-bg hidden" id="modal-esp">
+<!-- НАСТРОЙКИ -->
+<div class="modal-bg hidden" id="modal-tg">
   <div class="modal">
-    <div class="modal-title">📡 Подключение ESP32</div>
-    <div class="modal-desc">
-      Введите IP-адрес вашего ESP32. Найдите его в Serial Monitor Arduino IDE после загрузки прошивки.
+    <div class="modal-title">📡 Telegram Подключение</div>
+    <div class="modal-desc">ESP32 отправляет JSON-статус в закреплённое сообщение.</div>
+    <div style="margin-bottom:10px">
+      <div class="set-label">ТОКЕН БОТА</div>
+      <input class="modal-inp" id="tg-token" placeholder="1234567890:ABCdef..."/>
     </div>
-    <div class="modal-hint">Пример: <code>192.168.1.105</code></div>
-    <input class="modal-inp" id="esp-ip-input"
-           placeholder="192.168.1.105" type="text" inputmode="decimal"/>
-    <div class="modal-hint" style="margin-bottom:14px">
-      💡 ESP32 и телефон должны быть в одной WiFi-сети
+    <div style="margin-bottom:14px">
+      <div class="set-label">CHAT ID</div>
+      <input class="modal-inp" id="tg-chatid" placeholder="5741848306"/>
     </div>
     <div class="modal-row">
-      <button class="btn btn-ghost btn-full" onclick="closeEspModal()">Симуляция</button>
-      <button class="btn btn-g btn-full" onclick="saveEspIp()">✓ Подключить</button>
+      <button class="btn btn-ghost btn-full" onclick="closeTgModal()">Закрыть</button>
+      <button class="btn btn-g btn-full" onclick="saveTgConfig()">✓ Сохранить</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     ОСНОВНАЯ ОБЁРТКА
-══════════════════════════════════════════════ -->
+<!-- ОСНОВНОЙ UI -->
 <div class="wrap">
-
-  <!-- ШАПКА -->
   <header class="hdr">
-    <div style="display:flex;align-items:center;gap:8px;min-width:0">
-      <div class="pulse-dot"></div>
-      <div>
-        <div class="hdr-logo">🌿 ТЕПЛИЦА</div>
-        <div class="hdr-sub">УМНОЕ УПРАВЛЕНИЕ</div>
-      </div>
+    <div>
+      <div class="hdr-logo">🌿 ТЕПЛИЦА</div>
+      <div class="hdr-ver">v2.8.1 · Telegram</div>
     </div>
-    <div class="hdr-mid">
-      <div class="hdr-datetime" id="hdr-time">--:--:--</div>
-      <div class="hdr-date"     id="hdr-date">-- --- ----</div>
-    </div>
-    <div class="hdr-right">
-      <button class="hdr-btn" onclick="toggleAlarmPanel()" title="Аварии">
-        🔔<span class="alarm-count" id="alarm-count" style="display:none">0</span>
-      </button>
-      <button class="hdr-btn" onclick="switchTab('settings')" title="Настройки">⚙️</button>
+    <div class="hdr-status">
+      <span class="hdr-dot" id="hdr-dot"></span>
+      <span id="hdr-text">Ожидание</span>
     </div>
   </header>
 
-  <!-- ESP32 СТРОКА СТАТУСА -->
-  <div class="esp-bar disconnected" id="esp-bar">
-    <div class="esp-status-dot"></div>
-    <div class="esp-info">
-      <div class="esp-label" id="esp-label">ESP32 не подключён</div>
-      <div class="esp-sub"   id="esp-sub">Нажмите «Настроить» для подключения</div>
-    </div>
-    <!-- Кнопка «Повторить» — видна только при status=error -->
-    <button class="esp-btn" id="esp-retry-btn"
-            onclick="retryEsp()" style="display:none">🔄 Повторить</button>
-    <button class="esp-btn" onclick="openEspModal()">Настроить</button>
-  </div>
-
-  <!-- УЛИЧНАЯ ПОГОДА -->
-  <div class="outdoor-weather" id="outdoor-weather">
-    <div class="outdoor-icon" id="ow-icon">🌤</div>
-    <div class="outdoor-info">
-      <div class="outdoor-temp"    id="ow-temp">--°C</div>
-      <div class="outdoor-desc"    id="ow-desc">Загрузка погоды...</div>
-      <div class="outdoor-updated" id="ow-updated"></div>
-    </div>
-    <div class="outdoor-details">
-      <span id="ow-hum">💧 --%</span>
-      <span id="ow-wind">💨 -- м/с</span>
-      <span id="ow-pres">📊 -- hPa</span>
+  <div class="card">
+    <div class="card-title">🌡 КЛИМАТ</div>
+    <div class="metric-row">
+      <div class="metric"><div class="metric-val" id="v-temp">--°</div><div class="metric-label">Воздух</div></div>
+      <div class="metric"><div class="metric-val" id="v-hum">--%</div><div class="metric-label">Влажность</div></div>
+      <div class="metric"><div class="metric-val" id="v-out">--°</div><div class="metric-label">Улица</div></div>
     </div>
   </div>
 
-  <!-- ПАНЕЛЬ АВАРИЙ (раскрывается) -->
-  <div class="alarm-panel" id="alarm-panel">
-    <div class="alarm-panel-head">
-      <span>🚨 АВАРИИ И ПРЕДУПРЕЖДЕНИЯ</span>
-      <button class="alarm-dismiss" onclick="dismissAllAlarms()">Снять все</button>
-    </div>
-    <div id="alarm-list"></div>
-  </div>
-
-  <!-- СТРОКА КУЛЬТУРЫ -->
-  <div class="crop-mode-bar">
-    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-      <span id="crop-bar-icon" style="font-size:22px;flex-shrink:0">🍅</span>
-      <div style="min-width:0;overflow:hidden">
-        <div class="crop-mode-name" id="crop-bar-name">Томаты</div>
-        <div class="crop-mode-desc" id="crop-bar-desc">Теплолюбивая культура, высокая влажность</div>
+  <div class="card">
+    <div class="card-title">🌱 ПОЧВА</div>
+    <div class="soil-grid">
+      <div class="soil-item">
+        <div class="soil-header"><span>Грядка 1</span><span class="soil-val" id="v-s1">--%</span></div>
+        <div class="prog"><div class="pf soil-pf" id="pb1"></div></div>
       </div>
-    </div>
-    <select class="crop-mode-select" id="crop-select" onchange="onCropPresetChange()">
-      <option value="tomato">🍅 Томаты</option>
-      <option value="cucumber">🥒 Огурцы</option>
-      <option value="pepper">🌶 Перцы</option>
-      <option value="eggplant">🍆 Баклажаны</option>
-      <option value="strawberry">🍓 Клубника</option>
-      <option value="lettuce">🥬 Салат</option>
-      <option value="radish">🟢 Редис</option>
-      <option value="onion">🧅 Лук зелёный</option>
-      <option value="basil">🌿 Базилик</option>
-      <option value="microgreens">🌱 Микрозелень</option>
-      <option value="greens">🥗 Зелень</option>
-    </select>
-  </div>
-
-  <!-- СТРОКА СЕЗОНА -->
-  <div class="season-bar summer" id="season-bar">
-    <span class="season-bar-label" id="season-label">☀️ Режим: ЛЕТО</span>
-    <div class="season-toggle">
-      <button class="season-btn active summer" id="sbtn-summer" onclick="setSeason('summer')">ЛЕТО</button>
-      <button class="season-btn"               id="sbtn-winter" onclick="setSeason('winter')">ЗИМА</button>
+      <div class="soil-item">
+        <div class="soil-header"><span>Грядка 2</span><span class="soil-val" id="v-s2">--%</span></div>
+        <div class="prog"><div class="pf soil-pf" id="pb2"></div></div>
+      </div>
     </div>
   </div>
 
-  <!-- СТРОКА АВТОРЕЖИМА -->
-  <div class="auto-bar">
-    <span>🤖 Авторежим</span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span class="auto-badge on" id="auto-badge">● ВКЛ</span>
-      <label class="tog">
-        <input type="checkbox" id="tog-auto" checked onchange="toggleAuto()"/>
-        <span class="tog-track"></span>
-      </label>
+  <div class="card">
+    <div class="card-title">💡 ОСВЕЩЕНИЕ</div>
+    <div class="metric-row">
+      <div class="metric"><div class="metric-val" id="v-lux">--</div><div class="metric-label">Люкс</div></div>
+      <div class="metric"><div class="metric-val" id="v-day">--</div><div class="metric-label">Режим</div></div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════════════
-       СТРАНИЦА: ГЛАВНАЯ
-  ════════════════════════════════════════════ -->
-  <div class="page active" id="page-dashboard">
-
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">ПОКАЗАТЕЛИ ТЕПЛИЦЫ</span>
-        <span class="badge b-dim" style="font-size:10px">● LIVE</span>
-      </div>
-      <div class="mg">
-        <div class="mbox" style="--mc:var(--green)">
-          <div class="mval" id="db-temp">--<span class="munit">°C</span></div>
-          <div class="mlbl">🌡 ТЕМПЕРАТУРА</div>
-          <canvas class="sp" id="sp-temp"></canvas>
-        </div>
-        <div class="mbox" style="--mc:var(--info)">
-          <div class="mval" id="db-hum">--<span class="munit">%</span></div>
-          <div class="mlbl">💧 ВЛАЖНОСТЬ</div>
-          <canvas class="sp" id="sp-hum"></canvas>
-        </div>
-        <div class="mbox" style="--mc:var(--warn)">
-          <div class="mval" id="db-co2">--<span class="munit">ppm</span></div>
-          <div class="mlbl">🌿 CO₂</div>
-          <canvas class="sp" id="sp-co2"></canvas>
-        </div>
-        <div class="mbox" style="--mc:#fbbf24">
-          <div class="mval" id="db-lux">--<span class="munit">lx</span></div>
-          <div class="mlbl">☀️ ОСВЕЩЕНИЕ</div>
-          <canvas class="sp" id="sp-lux"></canvas>
-        </div>
-      </div>
+  <div class="card">
+    <div class="card-title">⚡ УСТРОЙСТВА</div>
+    <div class="dev-grid">
+      <div class="dev-item" id="dev-heater"><span class="dev-icon">🔥</span><span class="dev-name">Нагрев</span><span class="dev-state">ВЫКЛ</span></div>
+      <div class="dev-item" id="dev-fan"><span class="dev-icon">💨</span><span class="dev-name">Вентил.</span><span class="dev-state">ВЫКЛ</span></div>
+      <div class="dev-item" id="dev-humid"><span class="dev-icon">💧</span><span class="dev-name">Увлажн.</span><span class="dev-state">ВЫКЛ</span></div>
+      <div class="dev-item" id="dev-valve"><span class="dev-icon">🚿</span><span class="dev-name">Полив</span><span class="dev-state">ВЫКЛ</span></div>
+      <div class="dev-item" id="dev-light"><span class="dev-icon">🔦</span><span class="dev-name">Фонарь</span><span class="dev-state">ВЫКЛ</span></div>
     </div>
+  </div>
 
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">РУЧНОЕ УПРАВЛЕНИЕ</span>
-        <span class="badge b-dim" style="font-size:10px">Перекрывает авто</span>
-      </div>
-      <div class="g3">
-        <button class="btn btn-ghost" id="qb-heater" onclick="manualToggle('heater')">🔥 Обогрев</button>
-        <button class="btn btn-ghost" id="qb-fan"    onclick="manualToggle('fan')">💨 Вентил.</button>
-        <button class="btn btn-ghost" id="qb-humid"  onclick="manualToggle('humidifier')">💧 Увлажн.</button>
-      </div>
+  <div class="card">
+    <div class="card-title">📊 СТАТИСТИКА</div>
+    <div class="stats-grid">
+      <div class="stat"><span class="stat-label">Режим</span><span class="stat-val" id="v-mode">--</span></div>
+      <div class="stat"><span class="stat-label">Культура</span><span class="stat-val" id="v-crop">--</span></div>
+      <div class="stat"><span class="stat-label">Сезон</span><span class="stat-val" id="v-season">--</span></div>
+      <div class="stat"><span class="stat-label">Поливов</span><span class="stat-val" id="v-water">0</span></div>
+      <div class="stat"><span class="stat-label">Uptime</span><span class="stat-val" id="v-uptime">--</span></div>
     </div>
+  </div>
 
-    <div class="card">
-      <div class="card-head"><span class="card-title">СОСТОЯНИЕ СИСТЕМ</span></div>
-      <div style="display:flex;flex-direction:column;gap:5px">
-        <div class="status-row"><span>🔥 Отопление</span> <span class="badge b-dim" id="sys-heater">ВЫКЛ</span></div>
-        <div class="status-row"><span>💨 Вентиляция</span><span class="badge b-dim" id="sys-fan">ВЫКЛ</span></div>
-        <div class="status-row"><span>💧 Увлажнение</span><span class="badge b-dim" id="sys-humid">ВЫКЛ</span></div>
-        <div class="status-row"><span>💡 Освещение</span> <span class="badge b-ok"  id="sys-light">ДЕНЬ</span></div>
-        <div class="status-row"><span>🪣 Бак воды</span>  <span class="badge b-dim" id="sys-water">--%</span></div>
-      </div>
-    </div>
+  <button class="btn-settings" onclick="openTgModal()">⚙️ Настройки</button>
+</div>
 
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">СОБЫТИЯ</span>
-        <button class="btn btn-ghost" style="padding:3px 9px;font-size:10px" onclick="clearLogs()">Очистить</button>
-      </div>
-      <div class="log-list" id="log-list">
-        <div style="text-align:center;color:var(--muted);font-size:11px;padding:10px">Нет событий</div>
-      </div>
-    </div>
-
-  </div><!-- /page-dashboard -->
-
-  <!-- ════════════════════════════════════════════
-       СТРАНИЦА: ДАТЧИКИ
-  ════════════════════════════════════════════ -->
-  <div class="page" id="page-sensors">
-
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">ВОЗДУХ И ПОЧВА</span>
-        <span class="badge b-dim" id="sensor-src-badge" style="font-size:9px">SIM</span>
-      </div>
-      <div class="mg">
-        <div class="mbox" style="--mc:var(--green)">
-          <div class="mval" id="s-ta">--<span class="munit">°C</span></div>
-          <div class="mlbl">ТЕМП. ВОЗДУХ</div>
-          <div class="mlbl" style="opacity:.55;margin-top:1px">DHT22</div>
-        </div>
-        <div class="mbox" style="--mc:var(--info)">
-          <div class="mval" id="s-hu">--<span class="munit">%</span></div>
-          <div class="mlbl">ВЛАЖНОСТЬ</div>
-          <div class="mlbl" style="opacity:.55;margin-top:1px">DHT22</div>
-        </div>
-        <div class="mbox" style="--mc:var(--purple)">
-          <div class="mval" id="s-ts">--<span class="munit">°C</span></div>
-          <div class="mlbl">ТЕМП. ПОЧВА</div>
-          <div class="mlbl" style="opacity:.55;margin-top:1px">DS18B20</div>
-        </div>
-        <div class="mbox" style="--mc:var(--dim)">
-          <div class="mval" id="s-pr">--<span class="munit">hPa</span></div>
-          <div class="mlbl">ДАВЛЕНИЕ</div>
-          <div class="mlbl" style="opacity:.55;margin-top:1px">BMP280</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">СРЕДА</span></div>
-      <div class="mg">
-        <div class="mbox" style="--mc:var(--warn)">
-          <div class="mval" id="s-co">--<span class="munit">ppm</span></div>
-          <div class="mlbl">CO₂ · MH-Z19B</div>
-          <div class="prog"><div class="pf" id="s-co-b" style="background:var(--warn)"></div></div>
-        </div>
-        <div class="mbox" style="--mc:#fbbf24">
-          <div class="mval" id="s-lx">--<span class="munit">lx</span></div>
-          <div class="mlbl">СВЕТ · BH1750</div>
-          <div class="prog"><div class="pf" id="s-lx-b" style="background:#fbbf24"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">УРОВЕНЬ ВОДЫ</span></div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-            <span>🪣 Бак полива</span>
-            <span class="badge b-ok" id="wl1">--%</span>
-          </div>
-          <div class="prog" style="height:8px"><div class="pf" id="wl1b" style="background:var(--info)"></div></div>
-        </div>
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-            <span>💎 Конденсат</span>
-            <span class="badge b-dim" id="wl2">--%</span>
-          </div>
-          <div class="prog" style="height:8px"><div class="pf" id="wl2b" style="background:var(--purple)"></div></div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /page-sensors -->
-
-  <!-- ════════════════════════════════════════════
-       СТРАНИЦА: КЛИМАТ
-  ════════════════════════════════════════════ -->
-  <div class="page" id="page-climate">
-
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">ЦЕЛЕВЫЕ ЗНАЧЕНИЯ</span>
-        <span class="badge b-dim" id="clim-season-lbl">ЛЕТО</span>
-      </div>
-      <div class="mg">
-        <div class="mbox" style="--mc:var(--green)">
-          <div class="mval" id="clim-ttarget">22<span class="munit">°C</span></div>
-          <div class="mlbl">ЦЕЛЬ ТЕМП.</div>
-        </div>
-        <div class="mbox" style="--mc:var(--info)">
-          <div class="mval" id="clim-htarget">70<span class="munit">%</span></div>
-          <div class="mlbl">ЦЕЛЬ ВЛАЖН.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">ВЕНТИЛЯЦИЯ</span>
-        <span class="badge b-warn" id="vent-mode-badge">ЛЕТО</span>
-      </div>
-      <div class="crow">
-        <div class="crow-lbl">
-          <div class="crow-name">💨 Вентилятор</div>
-          <div class="crow-hint" id="fan-hint">Вкл при &gt;28°C, Выкл при &lt;25°C</div>
-          <div class="crow-hint" id="vent-mode-hint">Забор свежего воздуха с улицы</div>
-        </div>
-        <label class="tog">
-          <input type="checkbox" id="tog-fan" onchange="manualToggle('fan')"/>
-          <span class="tog-track"></span>
-        </label>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">ОТОПЛЕНИЕ</span></div>
-      <div class="crow">
-        <div class="crow-lbl">
-          <div class="crow-name">🔥 Конвектор 2 кВт</div>
-          <div class="crow-hint" id="heat-hint">Вкл при &lt;18°C, Выкл при &gt;24°C</div>
-        </div>
-        <label class="tog">
-          <input type="checkbox" id="tog-heater" onchange="manualToggle('heater')"/>
-          <span class="tog-track"></span>
-        </label>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">УВЛАЖНЕНИЕ</span></div>
-      <div class="crow">
-        <div class="crow-lbl">
-          <div class="crow-name">💧 Увлажнители ×2</div>
-          <div class="crow-hint" id="humid-hint">Вкл при &lt;65%, Выкл при &gt;80%</div>
-        </div>
-        <label class="tog">
-          <input type="checkbox" id="tog-humid" onchange="manualToggle('humidifier')"/>
-          <span class="tog-track"></span>
-        </label>
-      </div>
-    </div>
-
-  </div><!-- /page-climate -->
-
-  <!-- ════════════════════════════════════════════
-       СТРАНИЦА: ПОЛИВ
-  ════════════════════════════════════════════ -->
-  <div class="page" id="page-irrigation">
-
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">ВЛАЖНОСТЬ ПОЧВЫ</span>
-        <button class="btn btn-i" style="padding:4px 10px;font-size:10px" onclick="waterAll()">
-          💦 Полить всё
-        </button>
-      </div>
-      <div class="soil-grid" id="soil-grid"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">БАК ПОЛИВА</span></div>
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="flex:1">
-          <div class="prog" style="height:10px">
-            <div class="pf" id="irr-wl" style="background:var(--info)"></div>
-          </div>
-          <div style="font-size:10px;color:var(--muted);margin-top:3px">Уровень воды</div>
-        </div>
-        <span class="badge b-ok" id="irr-wlb">--%</span>
-      </div>
-    </div>
-
-  </div><!-- /page-irrigation -->
-
-  <!-- ════════════════════════════════════════════
-       СТРАНИЦА: ОСВЕЩЕНИЕ
-  ════════════════════════════════════════════ -->
-  <div class="page" id="page-lighting">
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">ТЕКУЩЕЕ</span></div>
-      <div class="mg">
-        <div class="mbox" style="--mc:#fbbf24">
-          <div class="mval" id="l-lux">--<span class="munit">lx</span></div>
-          <div class="mlbl">ОСВЕЩЁННОСТЬ</div>
-        </div>
-        <div class="mbox" style="--mc:var(--green)">
-          <div class="mval" id="l-photo">--<span class="munit">ч</span></div>
-          <div class="mlbl">СВЕТОВОЙ ДЕНЬ</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">РЕГИОН И КУЛЬТУРА</span></div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div>
-          <div class="set-label">РЕГИОН</div>
-          <select class="sel" id="region-sel" onchange="onRegionChange()">
-            <!-- ↓ Гидигич первым и selected по умолчанию -->
-            <option value="gidighici" selected>Гидигич, Молдова (47.1°N)</option>
-            <option value="chisinau">Кишинёв, Молдова (47.0°N)</option>
-            <option value="moscow">Москва (55.7°N)</option>
-            <option value="spb">Санкт-Петербург (59.9°N)</option>
-            <option value="krasnodar">Краснодар (45.0°N)</option>
-            <option value="sochi">Сочи (43.6°N)</option>
-            <option value="minsk">Минск (53.9°N)</option>
-            <option value="kyiv">Киев (50.5°N)</option>
-            <option value="almaty">Алматы (43.3°N)</option>
-          </select>
-        </div>
-        <div>
-          <div class="set-label">КУЛЬТУРА</div>
-          <select class="sel" id="crop-sel" onchange="onCropChange()">
-            <option value="tomato">🍅 Томаты (14–16 ч)</option>
-            <option value="cucumber">🥒 Огурцы (12–14 ч)</option>
-            <option value="pepper">🌶 Перцы (14–16 ч)</option>
-            <option value="eggplant">🍆 Баклажаны (14–16 ч)</option>
-            <option value="strawberry">🍓 Клубника (8–12 ч)</option>
-            <option value="lettuce">🥬 Салат (12–14 ч)</option>
-            <option value="radish">🟢 Редис (12–14 ч)</option>
-            <option value="onion">🧅 Лук зелёный (12–14 ч)</option>
-            <option value="basil">🌿 Базилик (14–16 ч)</option>
-            <option value="microgreens">🌱 Микрозелень (14–16 ч)</option>
-            <option value="greens">🥗 Зелень (12–16 ч)</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">РАСЧЁТ ФОТОПЕРИОДА</span></div>
-      <div class="photo-result">
-        <div class="photo-row"><span>📍 Регион</span>         <span class="photo-val" id="pr-region">--</span></div>
-        <div class="photo-row"><span>🌅 Восход</span>         <span class="photo-val" id="pr-rise">--:--</span></div>
-        <div class="photo-row"><span>🌇 Закат</span>          <span class="photo-val" id="pr-set">--:--</span></div>
-        <div class="photo-row"><span>☀️ Световой день</span>  <span class="photo-val" id="pr-natural">-- ч</span></div>
-        <div class="photo-row"><span>🌱 Нужно культуре</span> <span class="photo-val" id="pr-need">-- ч</span></div>
-        <div class="photo-row"><span>💡 Досветка LED</span>   <span class="photo-val" id="pr-supp">-- ч</span></div>
-      </div>
-      <div id="led-schedule"></div>
-    </div>
-
-  </div><!-- /page-lighting -->
-
-  <!-- ════════════════════════════════════════════
-       СТРАНИЦА: КАМЕРЫ
-  ════════════════════════════════════════════ -->
-  <div class="page" id="page-cameras">
-
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">ВИДЕОНАБЛЮДЕНИЕ</span>
-        <span class="cam-rec">REC</span>
-      </div>
-
-      <div class="cam-main">
-        <img id="cm-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover"/>
-        <div class="cam-main-ph" id="cm-ph">
-          <span class="ci">📷</span>
-          <span>Камера не подключена</span>
-        </div>
-        <div style="position:absolute;top:7px;left:7px;right:7px;display:flex;justify-content:space-between;pointer-events:none">
-          <span class="cam-tag" id="cm-label">CAM 1 — Вход</span>
-          <span class="cam-tag" id="cm-time">--:--:--</span>
-        </div>
-      </div>
-
-      <div class="cam-grid" id="cam-thumbs"></div>
-      <div id="cam-settings"></div>
-    </div>
-
-  </div><!-- /page-cameras -->
-
-  <!-- ════════════════════════════════════════════
-       СТРАНИЦА: НАСТРОЙКИ
-  ════════════════════════════════════════════ -->
-  <div class="page" id="page-settings">
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">📡 ESP32 ПОДКЛЮЧЕНИЕ</span></div>
-
-      <div class="set-row">
-        <div>
-          <div class="set-name">IP-адрес ESP32</div>
-          <div class="set-sub" id="esp-ip-display">Не задан — режим симуляции</div>
-        </div>
-        <button class="btn btn-g" style="padding:6px 12px;font-size:11px;flex-shrink:0"
-                onclick="openEspModal()">Изменить</button>
-      </div>
-
-      <div class="set-row">
-        <div>
-          <div class="set-name">Интервал опроса</div>
-          <div class="set-sub">Как часто читать датчик</div>
-        </div>
-        <div class="num-ctrl">
-          <button onclick="adj('pollInterval',-1)">−</button>
-          <span class="num-val" id="sv-pollInterval">3</span>с
-          <button onclick="adj('pollInterval',+1)">+</button>
-        </div>
-      </div>
-
-      <div class="esp-code-block">
-        <div class="esp-code-title">📋 КОД ДЛЯ ESP32 (Arduino IDE):</div>
-        <div class="esp-code-content" id="esp-code-hint"></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">🌱 РЕЖИМЫ КУЛЬТУР</span></div>
-      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">
-        Выберите культуру — все пороги установятся автоматически
-      </div>
-      <div class="crop-preset-grid" id="crop-preset-grid"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">⚙️ КЛИМАТ — ПОРОГИ</span></div>
-
-      <div class="set-row">
-        <div><div class="set-name">🔥 Обогрев ВКЛ</div></div>
-        <div class="num-ctrl">
-          <button onclick="adj('heaterOn',-1)">−</button>
-          <span class="num-val" id="sv-heaterOn">18</span>°C
-          <button onclick="adj('heaterOn',+1)">+</button>
-        </div>
-      </div>
-      <div class="set-row">
-        <div><div class="set-name">🔥 Обогрев ВЫКЛ</div></div>
-        <div class="num-ctrl">
-          <button onclick="adj('heaterOff',-1)">−</button>
-          <span class="num-val" id="sv-heaterOff">24</span>°C
-          <button onclick="adj('heaterOff',+1)">+</button>
-        </div>
-      </div>
-      <div class="set-row">
-        <div><div class="set-name">💨 Вентилятор ВКЛ</div></div>
-        <div class="num-ctrl">
-          <button onclick="adj('fanOn',-1)">−</button>
-          <span class="num-val" id="sv-fanOn">28</span>°C
-          <button onclick="adj('fanOn',+1)">+</button>
-        </div>
-      </div>
-      <div class="set-row">
-        <div><div class="set-name">💧 Увлажнитель ВКЛ</div></div>
-        <div class="num-ctrl">
-          <button onclick="adj('humidOn',-1)">−</button>
-          <span class="num-val" id="sv-humidOn">65</span>%
-          <button onclick="adj('humidOn',+1)">+</button>
-        </div>
-      </div>
-      <div class="set-row">
-        <div><div class="set-name">💧 Увлажнитель ВЫКЛ</div></div>
-        <div class="num-ctrl">
-          <button onclick="adj('humidOff',-1)">−</button>
-          <span class="num-val" id="sv-humidOff">80</span>%
-          <button onclick="adj('humidOff',+1)">+</button>
-        </div>
-      </div>
-      <div class="set-row">
-        <div><div class="set-name">🌿 CO₂ Порог</div></div>
-        <div class="num-ctrl">
-          <button onclick="adj('co2Alert',-50)">−</button>
-          <span class="num-val" id="sv-co2Alert">1500</span>
-          <button onclick="adj('co2Alert',+50)">+</button>
-        </div>
-      </div>
-      <div class="set-row">
-        <div><div class="set-name">🌱 Влажность почвы мин.</div></div>
-        <div class="num-ctrl">
-          <button onclick="adj('soilMin',-5)">−</button>
-          <span class="num-val" id="sv-soilMin">55</span>%
-          <button onclick="adj('soilMin',+5)">+</button>
-        </div>
-      </div>
-      <div class="set-row">
-        <div><div class="set-name">💦 Длительность полива</div></div>
-        <div class="num-ctrl">
-          <button onclick="adj('waterSec',-5)">−</button>
-          <span class="num-val" id="sv-waterSec">45</span>с
-          <button onclick="adj('waterSec',+5)">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><span class="card-title">⚙️ СИСТЕМА</span></div>
-      <div class="g2">
-        <button class="btn btn-r"     onclick="clearAlarms()">🗑 Очист. аларм</button>
-        <button class="btn btn-ghost" onclick="resetSettings()">↺ Сброс настр.</button>
-      </div>
-      <div style="margin-top:10px;font-size:10px;color:var(--muted);text-align:center">
-        Умная Теплица v4.1 · ESP32 + DHT22 + DS18B20 + BMP280
-      </div>
-    </div>
-
-  </div><!-- /page-settings -->
-
-</div><!-- /wrap -->
-
-<!-- НИЖНЯЯ НАВИГАЦИЯ -->
-<nav class="nav">
-  <button class="nb active" id="nav-dashboard"  onclick="switchTab('dashboard')">
-    <span class="ic">📊</span>Главная
-  </button>
-  <button class="nb" id="nav-sensors"    onclick="switchTab('sensors')">
-    <span class="ic">🌡</span>Датчики
-  </button>
-  <button class="nb" id="nav-climate"    onclick="switchTab('climate')">
-    <span class="ic">💨</span>Климат
-  </button>
-  <button class="nb" id="nav-irrigation" onclick="switchTab('irrigation')">
-    <span class="ic">💧</span>Полив
-  </button>
-  <button class="nb" id="nav-lighting"   onclick="switchTab('lighting')">
-    <span class="ic">💡</span>Свет
-  </button>
-  <button class="nb" id="nav-cameras"    onclick="switchTab('cameras')">
-    <span class="ic">📷</span>Камеры
-  </button>
-  <button class="nb" id="nav-settings"   onclick="switchTab('settings')">
-    <span class="ic">⚙️</span>Настройки
-  </button>
-</nav>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script src="app.js"></script>
 </body>
 </html>
