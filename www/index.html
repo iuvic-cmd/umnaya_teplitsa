@@ -1,15 +1,103 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Умная Теплица</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+  <title>🌿 Умная Теплица</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <div id="app"></div>
-  <script src="telegram-status-service.js"></script>
-  <script src="telegram-control-service.js"></script>
-  <script src="app.js"></script>
+
+<!-- НАСТРОЙКИ -->
+<div class="modal-bg hidden" id="modal-tg">
+  <div class="modal">
+    <div class="modal-title">📡 Telegram Подключение</div>
+    <div class="modal-desc">ESP32 отправляет JSON-статус в закреплённое сообщение.</div>
+    <div style="margin-bottom:10px">
+      <div class="set-label">ТОКЕН БОТА</div>
+      <input class="modal-inp" id="tg-token" placeholder="1234567890:ABCdef..."/>
+    </div>
+    <div style="margin-bottom:14px">
+      <div class="set-label">CHAT ID</div>
+      <input class="modal-inp" id="tg-chatid" placeholder="5741848306"/>
+    </div>
+    <div class="modal-row">
+      <button class="btn btn-ghost btn-full" onclick="closeTgModal()">Закрыть</button>
+      <button class="btn btn-g btn-full" onclick="saveTgConfig()">✓ Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ОСНОВНОЙ UI -->
+<div class="wrap">
+  <header class="hdr">
+    <div>
+      <div class="hdr-logo">🌿 ТЕПЛИЦА</div>
+      <div class="hdr-ver">v2.8.1 · Telegram</div>
+    </div>
+    <div class="hdr-status">
+      <span class="hdr-dot" id="hdr-dot"></span>
+      <span id="hdr-text">Ожидание</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="card-title">🌡 КЛИМАТ</div>
+    <div class="metric-row">
+      <div class="metric"><div class="metric-val" id="v-temp">--°</div><div class="metric-label">Воздух</div></div>
+      <div class="metric"><div class="metric-val" id="v-hum">--%</div><div class="metric-label">Влажность</div></div>
+      <div class="metric"><div class="metric-val" id="v-out">--°</div><div class="metric-label">Улица</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🌱 ПОЧВА</div>
+    <div class="soil-grid">
+      <div class="soil-item">
+        <div class="soil-header"><span>Грядка 1</span><span class="soil-val" id="v-s1">--%</span></div>
+        <div class="prog"><div class="pf soil-pf" id="pb1"></div></div>
+      </div>
+      <div class="soil-item">
+        <div class="soil-header"><span>Грядка 2</span><span class="soil-val" id="v-s2">--%</span></div>
+        <div class="prog"><div class="pf soil-pf" id="pb2"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💡 ОСВЕЩЕНИЕ</div>
+    <div class="metric-row">
+      <div class="metric"><div class="metric-val" id="v-lux">--</div><div class="metric-label">Люкс</div></div>
+      <div class="metric"><div class="metric-val" id="v-day">--</div><div class="metric-label">Режим</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚡ УСТРОЙСТВА</div>
+    <div class="dev-grid">
+      <div class="dev-item" id="dev-heater"><span class="dev-icon">🔥</span><span class="dev-name">Нагрев</span><span class="dev-state">ВЫКЛ</span></div>
+      <div class="dev-item" id="dev-fan"><span class="dev-icon">💨</span><span class="dev-name">Вентил.</span><span class="dev-state">ВЫКЛ</span></div>
+      <div class="dev-item" id="dev-humid"><span class="dev-icon">💧</span><span class="dev-name">Увлажн.</span><span class="dev-state">ВЫКЛ</span></div>
+      <div class="dev-item" id="dev-valve"><span class="dev-icon">🚿</span><span class="dev-name">Полив</span><span class="dev-state">ВЫКЛ</span></div>
+      <div class="dev-item" id="dev-light"><span class="dev-icon">🔦</span><span class="dev-name">Фонарь</span><span class="dev-state">ВЫКЛ</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 СТАТИСТИКА</div>
+    <div class="stats-grid">
+      <div class="stat"><span class="stat-label">Режим</span><span class="stat-val" id="v-mode">--</span></div>
+      <div class="stat"><span class="stat-label">Культура</span><span class="stat-val" id="v-crop">--</span></div>
+      <div class="stat"><span class="stat-label">Сезон</span><span class="stat-val" id="v-season">--</span></div>
+      <div class="stat"><span class="stat-label">Поливов</span><span class="stat-val" id="v-water">0</span></div>
+      <div class="stat"><span class="stat-label">Uptime</span><span class="stat-val" id="v-uptime">--</span></div>
+    </div>
+  </div>
+
+  <button class="btn-settings" onclick="openTgModal()">⚙️ Настройки</button>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
 </body>
 </html>
